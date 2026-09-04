@@ -15,14 +15,15 @@ export default function UserManagementPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all'); // values: 'all' | 'Active' | 'Inactive'
+  const [filterStatus, setFilterStatus] = useState('all'); // values: 'all' | 'Active' | 'Pending' | 'Inactive'
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      let apiStatus: 'active' | 'deactivated' | undefined = undefined;
+      let apiStatus: 'active' | 'deactivated' | 'pending' | undefined = undefined;
       if (filterStatus === 'Active') apiStatus = 'active';
       else if (filterStatus === 'Inactive') apiStatus = 'deactivated';
+      else if (filterStatus === 'Pending') apiStatus = 'pending';
 
       const data = await getUsers({
         page,
@@ -97,7 +98,10 @@ export default function UserManagementPage() {
       label: 'STATUS',
       render: (value: unknown) => {
         const statusStr = String(value);
-        const variant = statusStr === 'active' ? 'success' as const : 'danger' as const;
+        let variant: 'success' | 'danger' | 'warning' = 'danger';
+        if (statusStr === 'active') variant = 'success';
+        else if (statusStr === 'pending') variant = 'warning';
+
         const displayLabel = statusStr.charAt(0).toUpperCase() + statusStr.slice(1);
         return <Badge variant={variant}>{displayLabel}</Badge>;
       }
@@ -153,7 +157,8 @@ export default function UserManagementPage() {
         >
           <option value="all">All Users</option>
           <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
+          <option value="Pending">Pending</option>
+          <option value="Inactive">Inactive / Deactivated</option>
         </select>
       </div>
 

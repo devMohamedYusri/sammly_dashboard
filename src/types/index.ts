@@ -140,3 +140,193 @@ export interface ApiSupportDetailResponse {
   data: ApiSupportDetail;
 }
 
+// Telemetry & System Metrics
+export interface RoutePerformance {
+  route: string;
+  totalCalls: number;
+  avgLatencyMs: number;
+  maxLatencyMs: number;
+}
+
+export interface HourlyLatencyTrend {
+  hour: string;
+  requests: number;
+  avgLatencyMs: number;
+}
+
+export interface ApiTelemetryOverview {
+  timeframe: string;
+  totalRequests: number;
+  errorRatePercent: number;
+  statusDistribution: Array<{ _id: string; count: number }>;
+  routePerformance: RoutePerformance[];
+  hourlyTrend: HourlyLatencyTrend[];
+}
+
+export interface ApiTelemetryResponse {
+  status: string;
+  data: ApiTelemetryOverview;
+}
+
+// Sourcing Quality & AI Analytics
+export interface QualityBreakdown {
+  counts: {
+    good: number;
+    moderate: number;
+    poor: number;
+    none: number;
+    rejected: number;
+  };
+  percentages: {
+    good: number;
+    moderate: number;
+    poor: number;
+    none: number;
+    rejected: number;
+  };
+}
+
+export interface TopCategoryDemand {
+  category: string;
+  searchCount: number;
+  avgSimilarityScore: number;
+}
+
+export interface RetailerDistribution {
+  store: string;
+  matchedCount: number;
+}
+
+export interface DailySourcingTrend {
+  _id: string;
+  total: number;
+  goodMatches: number;
+  moderateMatches: number;
+  poorMatches: number;
+  noMatches: number;
+  rejected: number;
+}
+
+export interface SourcingQualityMetrics {
+  totalSearches: number;
+  rejectionRatePercent: number;
+  qualityBreakdown: QualityBreakdown;
+  latencyBreakdown: {
+    avgGeminiVisionMs: number;
+    avgRenderDinoSearchMs: number;
+    avgTotalRoundtripMs: number;
+  };
+  topCategories: TopCategoryDemand[];
+  retailerDistribution: RetailerDistribution[];
+  dailyTrend: DailySourcingTrend[];
+}
+
+export interface SourcingQualityResponse {
+  status: string;
+  data: SourcingQualityMetrics;
+}
+
+// Search Logs
+export interface SearchResultItem {
+  id?: string;
+  score?: number;
+  title?: string;
+  price_egp?: number;
+  category?: string;
+  store_name?: string;
+  product_url?: string;
+  image_url?: string;
+}
+
+export interface SourcingSearchLog {
+  _id: string;
+  userId?: {
+    _id: string;
+    email: string;
+    role: string;
+    status: string;
+  };
+  imageUrl: string;
+  isValidInterior: boolean;
+  rejectionReason?: string | null;
+  detectedCategories: string[];
+  primaryCategory?: string | null;
+  visualDescription?: string;
+  quality: 'good' | 'moderate' | 'poor' | 'none' | 'rejected';
+  topScore: number;
+  matchCount: number;
+  results: SearchResultItem[];
+  latency: {
+    geminiMs: number;
+    dinoMs: number;
+    totalMs: number;
+  };
+  createdAt: string;
+}
+
+export interface SourcingLogsResponse {
+  status: string;
+  data: {
+    logs: SourcingSearchLog[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+}
+
+// Feature Flags
+export interface FeatureFlags {
+  customBuild: {
+    enabled: boolean;
+    teaser?: boolean;
+    title?: string;
+    message?: string;
+  };
+  visualSourcing: {
+    enabled: boolean;
+    standaloneSearch?: boolean;
+  };
+  fluxGeneration: {
+    enabled: boolean;
+    engine?: string;
+  };
+  googlePlayBilling: {
+    enabled: boolean;
+  };
+}
+
+export interface FeatureFlagsResponse {
+  status: string;
+  data: {
+    flags: FeatureFlags;
+  };
+}
+
+// App Version
+export interface AppVersionData {
+  latestVersion: string;
+  minRequiredVersion: string;
+  downloadUrl: string;
+  forceUpdate: boolean;
+  releaseNotes: string;
+  releaseNotesAr: string;
+}
+
+export interface AppVersionResponse {
+  status: string;
+  data: AppVersionData;
+}
+
+// Legal Documents
+export interface LegalDocResponse {
+  status: string;
+  data: {
+    title: string;
+    content: string;
+  };
+}
+
+

@@ -10,9 +10,88 @@ const Sidebar: React.FC = () => {
   const { logout } = useAuth();
 
   const navItems = [
-    { id: 'users' as const, label: 'User Management', href: '/dashboard/users', icon: '/icon-user-mgmt.svg' },
-    { id: 'token-pricing' as const, label: 'Token Pricing', href: '/dashboard/token-pricing', icon: '/icon-sparkles.svg' },
-    { id: 'dashboard' as const, label: 'Issues Analytics', href: '/dashboard', icon: '/icon-headset.svg' },
+    {
+      id: 'users' as const,
+      label: 'User Management',
+      href: '/dashboard/users',
+      renderIcon: (active: boolean) => (
+        <img
+          src="/icon-user-mgmt.svg"
+          alt="User Management"
+          className="w-6 h-6"
+          style={active ? { filter: 'brightness(0) invert(1)' } : {}}
+        />
+      ),
+    },
+    {
+      id: 'token-pricing' as const,
+      label: 'Token Pricing',
+      href: '/dashboard/token-pricing',
+      renderIcon: (active: boolean) => (
+        <img
+          src="/icon-sparkles.svg"
+          alt="Token Pricing"
+          className="w-6 h-6"
+          style={active ? { filter: 'brightness(0) invert(1)' } : {}}
+        />
+      ),
+    },
+    {
+      id: 'dashboard' as const,
+      label: 'Issues Analytics',
+      href: '/dashboard',
+      renderIcon: (active: boolean) => (
+        <img
+          src="/icon-headset.svg"
+          alt="Issues Analytics"
+          className="w-6 h-6"
+          style={active ? { filter: 'brightness(0) invert(1)' } : {}}
+        />
+      ),
+    },
+    {
+      id: 'sourcing' as const,
+      label: 'AI & Sourcing',
+      href: '/dashboard/sourcing',
+      renderIcon: (active: boolean) => (
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={active ? 'text-white' : 'text-slate-600'}
+        >
+          <path d="M21 21l-4.35-4.35" />
+          <circle cx="11" cy="11" r="8" />
+          <path d="M11 8v6M8 11h6" />
+        </svg>
+      ),
+    },
+    {
+      id: 'system' as const,
+      label: 'App & Feature Flags',
+      href: '/dashboard/system',
+      renderIcon: (active: boolean) => (
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={active ? 'text-white' : 'text-slate-600'}
+        >
+          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+          <line x1="4" y1="22" x2="4" y2="15" />
+        </svg>
+      ),
+    },
   ];
 
   const handleLogout = () => {
@@ -20,7 +99,7 @@ const Sidebar: React.FC = () => {
   };
 
   return (
-    <div className="fixed left-0 top-0 h-screen w-[237px] bg-white flex flex-col z-50">
+    <div className="fixed left-0 top-0 h-screen w-[237px] bg-white flex flex-col z-50 border-r border-slate-100">
       {/* Logo */}
       <div className="px-6 py-8">
         <img
@@ -31,25 +110,20 @@ const Sidebar: React.FC = () => {
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 px-4 py-2">
+      <nav className="flex-1 px-4 py-2 space-y-1">
         {navItems.map((item) => (
           <Link
             key={item.id}
             href={item.href}
             onClick={() => setActiveNav(item.id)}
-            className={`flex items-center gap-3 rounded-lg px-4 py-3 mb-1 transition-all ${
+            className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all ${
               activeNav === item.id
-                ? 'bg-[#31A895] text-white'
+                ? 'bg-[#31A895] text-white shadow-sm'
                 : 'text-slate-700 hover:bg-slate-50'
             }`}
           >
             <span className="w-6 h-6 flex items-center justify-center">
-              <img
-                src={item.icon}
-                alt={item.label}
-                className="w-6 h-6"
-                style={activeNav === item.id ? { filter: 'brightness(0) invert(1)' } : {}}
-              />
+              {item.renderIcon(activeNav === item.id)}
             </span>
             <span className="text-sm font-medium">{item.label}</span>
           </Link>

@@ -6,10 +6,20 @@ import {
   ApiPackage,
   ApiUser,
   ApiSupportMessage,
-  ApiSupportDetail
+  ApiSupportDetail,
+  ApiTelemetryResponse,
+  ApiTelemetryOverview,
+  SourcingQualityResponse,
+  SourcingQualityMetrics,
+  SourcingLogsResponse,
+  FeatureFlagsResponse,
+  FeatureFlags,
+  AppVersionResponse,
+  AppVersionData,
+  LegalDocResponse,
 } from '@/types';
 
-const BASE_URL = 'https://sammly-backend-p3z7.onrender.com';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sammly-backend-p3z7.onrender.com';
 
 export class ApiError extends Error {
   status: number;
@@ -206,3 +216,54 @@ export async function closeSupportMessage(supportId: string): Promise<{ message:
   });
   return res.data;
 }
+
+// 5) Sourcing & System Telemetry
+export async function getApiTelemetryOverview(hours: number = 24): Promise<ApiTelemetryOverview> {
+  const res = await apiFetch<ApiTelemetryResponse>(`/api/admin/sourcing/telemetry/overview?hours=${hours}`);
+  return res.data;
+}
+
+export async function getSourcingQualityMetrics(): Promise<SourcingQualityMetrics> {
+  const res = await apiFetch<SourcingQualityResponse>('/api/admin/sourcing/telemetry/matching');
+  return res.data;
+}
+
+export interface GetSourcingLogsParams {
+  page?: number;
+  limit?: number;
+  quality?: 'good' | 'moderate' | 'poor' | 'none' | 'rejected';
+  category?: string;
+  isValid?: boolean;
+}
+
+export async function getDetailedSourcingLogs(params: GetSourcingLogsParams = {}): Promise<SourcingLogsResponse['data']> {
+  const query = new URLSearchParams();
+  if (params.page !== undefined) query.append('page', String(params.page));
+  if (params.limit !== undefined) query.append('limit', String(params.limit));
+  if (params.quality) query.append('quality', params.quality);
+  if (params.category) query.append('category', params.category);
+  if (params.isValid !== undefined) query.append('isValid', String(params.isValid));
+
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  const res = await apiFetch<SourcingLogsResponse>(`/api/admin/sourcing/logs${queryString}`);
+  return res.data;
+}
+
+// 6) Feature Flags & Mobile Config
+export async function getFeatureFlags(): Promise<FeatureFlags> {
+  const res = await apiFetch<FeatureFlagsResponse>('/api/feature-flags');
+  return res.data.flags;
+}
+
+// 7) App Version
+export async function getAppVersion(): Promise<AppVersionData> {
+  const res = await apiFetch<AppVersionResponse>('/api/app-version');
+  return res.data;
+}
+
+// 8) Legal Documents
+export async function getLegalDocument(type: 'privacy-policy' | 'terms-of-service'): Promise<{ title: string; content: string }> {
+  const res = await apiFetch<LegalDocResponse>(`/api/legal/${type}`);
+  return res.data;
+}
+
