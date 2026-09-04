@@ -224,7 +224,7 @@ export default function SourcingTelemetryPage() {
                 <StatCard
                   title="TOTAL API CALLS"
                   value={telemetry.totalRequests}
-                  iconSrc="/icon-users.svg"
+                  iconSrc="/icon-telemetry.svg"
                 />
                 <StatCard
                   title="ERROR RATE"
@@ -365,7 +365,7 @@ export default function SourcingTelemetryPage() {
                 <StatCard
                   title="30-DAY VISUAL SEARCHES"
                   value={metrics.totalSearches}
-                  iconSrc="/icon-users.svg"
+                  iconSrc="/icon-radar.svg"
                 />
                 <StatCard
                   title="AI GUARD REJECTION RATE"
@@ -376,7 +376,7 @@ export default function SourcingTelemetryPage() {
                 <StatCard
                   title="AVG ROUNDTRIP LATENCY"
                   value={`${metrics.latencyBreakdown.avgTotalRoundtripMs} ms`}
-                  iconSrc="/icon-check.svg"
+                  iconSrc="/icon-clock.svg"
                   valueColor="text-[#31A895]"
                 />
               </div>

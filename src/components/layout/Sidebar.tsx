@@ -14,83 +14,31 @@ const Sidebar: React.FC = () => {
       id: 'users' as const,
       label: 'User Management',
       href: '/dashboard/users',
-      renderIcon: (active: boolean) => (
-        <img
-          src="/icon-user-mgmt.svg"
-          alt="User Management"
-          className="w-6 h-6"
-          style={active ? { filter: 'brightness(0) invert(1)' } : {}}
-        />
-      ),
+      icon: '/icon-user-mgmt.svg',
     },
     {
       id: 'token-pricing' as const,
       label: 'Token Pricing',
       href: '/dashboard/token-pricing',
-      renderIcon: (active: boolean) => (
-        <img
-          src="/icon-sparkles.svg"
-          alt="Token Pricing"
-          className="w-6 h-6"
-          style={active ? { filter: 'brightness(0) invert(1)' } : {}}
-        />
-      ),
+      icon: '/icon-sparkles.svg',
     },
     {
       id: 'dashboard' as const,
       label: 'Issues Analytics',
       href: '/dashboard',
-      renderIcon: (active: boolean) => (
-        <img
-          src="/icon-headset.svg"
-          alt="Issues Analytics"
-          className="w-6 h-6"
-          style={active ? { filter: 'brightness(0) invert(1)' } : {}}
-        />
-      ),
+      icon: '/icon-headset.svg',
     },
     {
       id: 'sourcing' as const,
       label: 'AI & Sourcing',
       href: '/dashboard/sourcing',
-      renderIcon: (active: boolean) => (
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={active ? 'text-white' : 'text-slate-600'}
-        >
-          <path d="M21 21l-4.35-4.35" />
-          <circle cx="11" cy="11" r="8" />
-          <path d="M11 8v6M8 11h6" />
-        </svg>
-      ),
+      icon: '/icon-sourcing.svg',
     },
     {
       id: 'system' as const,
       label: 'App & Feature Flags',
       href: '/dashboard/system',
-      renderIcon: (active: boolean) => (
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={active ? 'text-white' : 'text-slate-600'}
-        >
-          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-          <line x1="4" y1="22" x2="4" y2="15" />
-        </svg>
-      ),
+      icon: '/icon-system.svg',
     },
   ];
 
@@ -123,7 +71,12 @@ const Sidebar: React.FC = () => {
             }`}
           >
             <span className="w-6 h-6 flex items-center justify-center">
-              {item.renderIcon(activeNav === item.id)}
+              <img
+                src={item.icon}
+                alt={item.label}
+                className="w-6 h-6"
+                style={activeNav === item.id ? { filter: 'brightness(0) invert(1)' } : {}}
+              />
             </span>
             <span className="text-sm font-medium">{item.label}</span>
           </Link>

@@ -92,7 +92,7 @@ export default function SystemSettingsPage() {
             <StatCard
               title="LATEST VERSION"
               value={`v${version.latestVersion}`}
-              iconSrc="/icon-sparkles.svg"
+              iconSrc="/icon-version.svg"
             />
             <StatCard
               title="MINIMUM REQUIRED"
