@@ -17,6 +17,19 @@ import {
   AppVersionResponse,
   AppVersionData,
   LegalDocResponse,
+  ApiLedgerOverviewResponse,
+  FinancialOverviewData,
+  ApiLedgerEntriesResponse,
+  FinancialLedgerEntry,
+  ApiGovernanceResponse,
+  GovernanceOverviewData,
+  RecordExpensePayload,
+  RecordRepaymentPayload,
+  RecordReversalPayload,
+  ToggleMilitaryHiatusPayload,
+  LedgerEntryType,
+  LedgerCategory,
+  LedgerCurrency,
 } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sammly-backend-p3z7.onrender.com';
@@ -266,4 +279,69 @@ export async function getLegalDocument(type: 'privacy-policy' | 'terms-of-servic
   const res = await apiFetch<LegalDocResponse>(`/api/legal/${type}`);
   return res.data;
 }
+
+// 9) Financial Ledger & Governance
+export async function getLedgerOverview(): Promise<FinancialOverviewData> {
+  const res = await apiFetch<ApiLedgerOverviewResponse>('/api/admin/financials/ledger');
+  return res.data;
+}
+
+export interface GetLedgerEntriesParams {
+  page?: number;
+  limit?: number;
+  entryType?: LedgerEntryType;
+  category?: LedgerCategory | string;
+  currency?: LedgerCurrency;
+}
+
+export async function getLedgerEntries(params: GetLedgerEntriesParams = {}): Promise<ApiLedgerEntriesResponse['data']> {
+  const query = new URLSearchParams();
+  if (params.page !== undefined) query.append('page', String(params.page));
+  if (params.limit !== undefined) query.append('limit', String(params.limit));
+  if (params.entryType) query.append('entryType', params.entryType);
+  if (params.category) query.append('category', params.category);
+  if (params.currency) query.append('currency', params.currency);
+
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  const res = await apiFetch<ApiLedgerEntriesResponse>(`/api/admin/financials/entries${queryString}`);
+  return res.data;
+}
+
+export async function recordFounderExpense(payload: RecordExpensePayload): Promise<{ message: string; entry: FinancialLedgerEntry }> {
+  const res = await apiFetch<{ status: string; data: { message: string; entry: FinancialLedgerEntry } }>('/api/admin/financials/expenses', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return res.data;
+}
+
+export async function recordDebtRepayment(payload: RecordRepaymentPayload): Promise<{ message: string; remainingDebtEGP: number; entry: FinancialLedgerEntry }> {
+  const res = await apiFetch<{ status: string; data: { message: string; remainingDebtEGP: number; entry: FinancialLedgerEntry } }>('/api/admin/financials/repay', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return res.data;
+}
+
+export async function recordReversal(payload: RecordReversalPayload): Promise<{ message: string; reversalEntry: FinancialLedgerEntry }> {
+  const res = await apiFetch<{ status: string; data: { message: string; reversalEntry: FinancialLedgerEntry } }>('/api/admin/financials/reversal', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return res.data;
+}
+
+export async function getGovernanceOverview(): Promise<GovernanceOverviewData> {
+  const res = await apiFetch<ApiGovernanceResponse>('/api/admin/financials/governance');
+  return res.data;
+}
+
+export async function toggleMilitaryHiatus(payload: ToggleMilitaryHiatusPayload): Promise<{ message: string; governance: GovernanceOverviewData['governance'] }> {
+  const res = await apiFetch<{ status: string; data: { message: string; governance: GovernanceOverviewData['governance'] } }>('/api/admin/financials/governance/military-hiatus', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+  return res.data;
+}
+
 

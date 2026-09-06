@@ -35,6 +35,12 @@ const Sidebar: React.FC = () => {
       icon: '/icon-sourcing.svg',
     },
     {
+      id: 'financials' as const,
+      label: 'Financials & Equity',
+      href: '/dashboard/financials',
+      icon: '/icon-financials.svg',
+    },
+    {
       id: 'system' as const,
       label: 'App & Feature Flags',
       href: '/dashboard/system',

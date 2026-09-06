@@ -3,7 +3,7 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
-  role: 'admin' | 'support' | 'manager';
+  role: 'founder' | 'admin' | 'support' | 'manager' | 'user';
 }
 
 export interface Issue {
@@ -328,5 +328,183 @@ export interface LegalDocResponse {
     content: string;
   };
 }
+
+// Financial Ledger & Governance
+export type LedgerEntryType =
+  | 'DEBT_INJECTION'
+  | 'DEBT_REPAYMENT'
+  | 'PLATFORM_REVENUE'
+  | 'REFUND_ISSUED'
+  | 'REVERSAL_ADJUSTMENT';
+
+export type LedgerCategory =
+  | 'AI_APIS'
+  | 'HOSTING_INFRASTRUCTURE'
+  | 'APP_STORE_FEES'
+  | 'LEGAL_OPERATIONS'
+  | 'MARKETING_ACQUISITION'
+  | 'FOUNDER_DEBT_REPAYMENT'
+  | 'PLATFORM_CLIENT_REVENUE'
+  | 'COMPENSATING_REVERSAL'
+  | 'OTHER';
+
+export type LedgerCurrency = 'EGP' | 'USD' | 'EUR';
+
+export interface LedgerParty {
+  name: string;
+  accountType?: string;
+  reference?: string | null;
+}
+
+export interface LedgerRecordedBy {
+  userId: string;
+  email: string;
+  ipAddress?: string;
+}
+
+export interface FinancialLedgerEntry {
+  _id: string;
+  entryType: LedgerEntryType;
+  amount: number;
+  currency: LedgerCurrency;
+  exchangeRateToEGP: number;
+  amountInEGP: number;
+  category: LedgerCategory;
+  description: string;
+  sourceParty: LedgerParty;
+  recipientParty: LedgerParty;
+  receiptUrl?: string | null;
+  transactionReference?: string | null;
+  reversalOfEntryId?: string | null;
+  reversalReason?: string | null;
+  recordedBy: LedgerRecordedBy;
+  currentEntryHash: string;
+  previousEntryHash: string;
+  executedAt: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface LedgerSecurityData {
+  cryptographicChain: 'VALID' | 'TAMPER_DETECTED';
+  chainIntegrityValid: boolean;
+  totalVerifiedBlocks: number;
+  tamperDetected: boolean;
+  auditWarning: string | null;
+}
+
+export interface DebtWaterfallData {
+  totalInjectedDebtEGP: number;
+  totalRepaidDebtEGP: number;
+  netOutstandingDebtEGP: number;
+  payoffProgressPercent: number;
+  dividendStatus: 'LOCKED_DEBT_UNPAID' | 'UNLOCKED';
+  dividendPolicyMessage: string;
+}
+
+export interface PlatformRevenueData {
+  grossPlatformRevenueEGP: number;
+  completedTransactionsCount: number;
+}
+
+export interface ExpenseCategoryBreakdown {
+  category: LedgerCategory | string;
+  totalSpentEGP: number;
+  transactionCount: number;
+}
+
+export interface FinancialOverviewData {
+  security: LedgerSecurityData;
+  debtWaterfall: DebtWaterfallData;
+  platformRevenue: PlatformRevenueData;
+  categoryBreakdown: ExpenseCategoryBreakdown[];
+}
+
+export interface ApiLedgerOverviewResponse {
+  status: string;
+  data: FinancialOverviewData;
+}
+
+export interface ApiLedgerEntriesResponse {
+  status: string;
+  data: {
+    entries: FinancialLedgerEntry[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+}
+
+export interface FounderGovernanceProgress {
+  founderName: string;
+  totalEquityPercentage: number;
+  vestedPercentage: number;
+  unvestedPercentage: number;
+  effectiveMonthsServed: number;
+  totalVestingMonths: number;
+  isCliffPassed: boolean;
+  cliffMonths: number;
+  isMilitaryHiatusActive: boolean;
+  accumulatedHiatusDays: number;
+  startDate: string;
+  projectedCompletionDate: string;
+}
+
+export interface GovernanceAuditEntry {
+  action: string;
+  performedBy?: string;
+  performedByEmail?: string;
+  reason?: string;
+  timestamp: string;
+}
+
+export interface GovernanceOverviewData {
+  governance: FounderGovernanceProgress;
+  auditTrail: GovernanceAuditEntry[];
+}
+
+export interface ApiGovernanceResponse {
+  status: string;
+  data: GovernanceOverviewData;
+}
+
+export interface RecordExpensePayload {
+  amount: number;
+  currency?: LedgerCurrency;
+  exchangeRateToEGP?: number;
+  category: LedgerCategory;
+  description: string;
+  sourceParty: LedgerParty;
+  recipientParty: LedgerParty;
+  receiptUrl?: string | null;
+  transactionReference?: string | null;
+  executedAt?: string | Date;
+}
+
+export interface RecordRepaymentPayload {
+  amount: number;
+  currency?: LedgerCurrency;
+  exchangeRateToEGP?: number;
+  description?: string;
+  sourceParty?: LedgerParty;
+  recipientParty?: LedgerParty;
+  receiptUrl?: string | null;
+  transactionReference?: string | null;
+  executedAt?: string | Date;
+}
+
+export interface RecordReversalPayload {
+  targetEntryId: string;
+  reversalReason: string;
+}
+
+export interface ToggleMilitaryHiatusPayload {
+  isHiatus: boolean;
+  reason?: string;
+}
+
 
 
