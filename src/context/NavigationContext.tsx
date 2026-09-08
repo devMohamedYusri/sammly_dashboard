@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-type NavItem = 'users' | 'token-pricing' | 'dashboard' | 'sourcing' | 'system' | 'financials';
+type NavItem = 'overview' | 'users' | 'token-pricing' | 'support' | 'sourcing' | 'financials' | 'system';
 
 interface NavigationContextType {
   activeNav: NavItem;
@@ -12,7 +12,7 @@ interface NavigationContextType {
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
 export const NavigationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [activeNav, setActiveNav] = useState<NavItem>('users');
+  const [activeNav, setActiveNav] = useState<NavItem>('overview');
 
   return (
     <NavigationContext.Provider value={{ activeNav, setActiveNav }}>

@@ -11,6 +11,12 @@ const Sidebar: React.FC = () => {
 
   const navItems = [
     {
+      id: 'overview' as const,
+      label: 'Command Center',
+      href: '/dashboard',
+      icon: '/icon-telemetry.svg',
+    },
+    {
       id: 'users' as const,
       label: 'User Management',
       href: '/dashboard/users',
@@ -23,9 +29,9 @@ const Sidebar: React.FC = () => {
       icon: '/icon-sparkles.svg',
     },
     {
-      id: 'dashboard' as const,
-      label: 'Issues Analytics',
-      href: '/dashboard',
+      id: 'support' as const,
+      label: 'Customer Support',
+      href: '/dashboard/support',
       icon: '/icon-headset.svg',
     },
     {

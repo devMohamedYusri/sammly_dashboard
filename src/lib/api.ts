@@ -149,10 +149,38 @@ export async function getPackages(): Promise<ApiPackage[]> {
   return res.data.packages;
 }
 
-export async function addPackage(packageId: string, tokens: number, price: number): Promise<{ message: string }> {
+export interface AddPackageData {
+  packageId: string;
+  tokens: number;
+  price: number;
+  title?: string;
+  titleAr?: string;
+  badge?: string | null;
+  isSubscription?: boolean;
+  interval?: 'one_time' | 'monthly';
+}
+
+export async function addPackage(data: AddPackageData | string, legacyTokens?: number, legacyPrice?: number): Promise<{ message: string }> {
+  let body: Record<string, unknown>;
+  if (typeof data === 'string') {
+    body = { packageId: data, tokens: legacyTokens, credits: legacyTokens, price: legacyPrice };
+  } else {
+    body = {
+      packageId: data.packageId,
+      tokens: data.tokens,
+      credits: data.tokens,
+      price: data.price,
+      title: data.title || data.packageId,
+      titleAr: data.titleAr || data.packageId,
+      badge: data.badge || null,
+      isSubscription: data.isSubscription || false,
+      interval: data.interval || 'one_time',
+    };
+  }
+
   const res = await apiFetch<{ status: string; data: { message: string } }>('/api/admin/packages', {
     method: 'POST',
-    body: JSON.stringify({ packageId, tokens, price }),
+    body: JSON.stringify(body),
   });
   return res.data;
 }
@@ -161,20 +189,32 @@ export interface UpdatePackageData {
   newPackageId?: string;
   tokens?: number;
   price?: number;
+  newTitle?: string;
+  newTitleAr?: string;
+  newBadge?: string | null;
+  newIsSubscription?: boolean;
+  newInterval?: 'one_time' | 'monthly';
 }
 
 export async function updatePackage(packageId: string, data: UpdatePackageData): Promise<{ message: string }> {
-  // Translate fields to request-body: newPackageId, newTokens/tokens, newPrice/price
+  // Translate fields to request-body: newPackageId, newTokens/tokens, newPrice/price, etc.
   const payload: Record<string, unknown> = {};
   if (data.newPackageId !== undefined) payload.newPackageId = data.newPackageId;
   if (data.tokens !== undefined) {
     payload.newTokens = data.tokens;
+    payload.newCredits = data.tokens;
     payload.tokens = data.tokens;
+    payload.credits = data.tokens;
   }
   if (data.price !== undefined) {
     payload.newPrice = data.price;
     payload.price = data.price;
   }
+  if (data.newTitle !== undefined) payload.newTitle = data.newTitle;
+  if (data.newTitleAr !== undefined) payload.newTitleAr = data.newTitleAr;
+  if (data.newBadge !== undefined) payload.newBadge = data.newBadge;
+  if (data.newIsSubscription !== undefined) payload.newIsSubscription = data.newIsSubscription;
+  if (data.newInterval !== undefined) payload.newInterval = data.newInterval;
 
   const res = await apiFetch<{ status: string; data: { message: string } }>(`/api/admin/packages/${packageId}`, {
     method: 'PATCH',

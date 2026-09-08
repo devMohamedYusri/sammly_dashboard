@@ -6,62 +6,14 @@ export interface User {
   role: 'founder' | 'admin' | 'support' | 'manager' | 'user';
 }
 
-export interface Issue {
-  id: string;
-  title: string;
-  description: string;
-  status: 'open' | 'closed' | 'in-progress';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  createdAt: Date;
-  updatedAt: Date;
-  assignee?: User;
-  reporter: User;
-  category: string;
-  messages?: Message[];
-}
-
-export interface Message {
-  id: string;
-  issueId: string;
-  author: User;
-  content: string;
-  timestamp: Date;
-  attachments?: string[];
-}
-
-export interface TokenPackage {
-  id: string;
-  name: string;
-  tokens: number;
-  price: number;
-  currency: string;
-}
-
-export interface DashboardUser {
-  id: string;
-  email: string;
-  username: string;
-  status: 'Active' | 'Inactive';
-  joinDate: string;
-}
-
-export interface DashboardStats {
-  totalIssues: number;
-  openIssues: number;
-  closedIssues: number;
-}
-
-export interface AdminUser extends User {
-  permissions: string[];
-  lastLogin?: Date;
-}
-
 // API types
 export interface ApiUser {
   _id: string;
   email: string;
   username: string;
   status: 'pending' | 'active' | 'deactivated';
+  credits?: number;
+  tokens?: number;
   joinAt: string;
 }
 
@@ -84,10 +36,16 @@ export interface ApiUsersResponse {
 
 export interface ApiPackage {
   packageId: string;
+  title?: string;
+  titleAr?: string;
+  credits?: number;
   tokens: number;
   price: number;
-  createdAt: string;
-  updatedAt: string;
+  badge?: string | null;
+  isSubscription?: boolean;
+  interval?: 'one_time' | 'monthly';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ApiPackagesResponse {

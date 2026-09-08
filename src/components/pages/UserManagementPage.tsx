@@ -92,6 +92,18 @@ export default function UserManagementPage() {
   const tableColumns = [
     { key: 'email' as const, label: 'EMAIL' },
     { key: 'username' as const, label: 'USERNAME' },
+    {
+      key: 'credits' as const,
+      label: 'CREDITS',
+      render: (value: unknown, row: ApiUser) => {
+        const amount = Number(row.credits !== undefined ? row.credits : (row.tokens || 0));
+        return (
+          <span className="font-semibold text-slate-800">
+            {amount.toFixed(1)} <span className="text-xs text-slate-400 font-normal">pts</span>
+          </span>
+        );
+      }
+    },
     { key: 'joinAt' as const, label: 'JOINED' },
     {
       key: 'status' as const,
