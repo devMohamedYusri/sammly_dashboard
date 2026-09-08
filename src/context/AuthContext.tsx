@@ -7,6 +7,7 @@ import { loginAdmin, setToken, clearToken, getToken } from '@/lib/api';
 interface AuthContextType {
   user: User | null;
   isLoggedIn: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
@@ -46,7 +47,7 @@ function getInitialAuth(): { user: User | null; isLoggedIn: boolean } {
         }
       }
       const auth = JSON.parse(savedAuth);
-      return { user: auth.user, isLoggedIn: auth.isLoggedIn };
+      return { user: auth.user, isLoggedIn: !!auth.isLoggedIn };
     } catch {
       return { user: null, isLoggedIn: false };
     }
@@ -55,15 +56,32 @@ function getInitialAuth(): { user: User | null; isLoggedIn: boolean } {
 }
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [authState, setAuthState] = useState<{ user: User | null; isLoggedIn: boolean }>(() => getInitialAuth());
-  const [isLoaded, setIsLoaded] = useState(false);
-  const mountedRef = useRef(false);
+  const [authState, setAuthState] = useState<{ user: User | null; isLoggedIn: boolean }>({
+    user: null,
+    isLoggedIn: false,
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Sync auth state from localStorage on mount and across storage events
   useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true;
-      setIsLoaded(true);
-    }
+    const syncAuth = () => {
+      const currentAuth = getInitialAuth();
+      setAuthState(currentAuth);
+      setIsLoading(false);
+    };
+
+    syncAuth();
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'sammly-token' || e.key === 'sammly-auth') {
+        syncAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -88,12 +106,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setAuthState({ user: null, isLoggedIn: false });
   };
 
-  if (!isLoaded) {
-    return null;
-  }
-
   return (
-    <AuthContext.Provider value={{ user: authState.user, isLoggedIn: authState.isLoggedIn, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user: authState.user,
+        isLoggedIn: authState.isLoggedIn,
+        isLoading,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

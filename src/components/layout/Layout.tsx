@@ -10,17 +10,21 @@ interface LayoutProps {
 }
 
 const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
-  const { isLoggedIn, user } = useAuth();
+  const { isLoggedIn, isLoading, user } = useAuth();
   const router = useRouter();
 
   React.useEffect(() => {
-    if (!isLoggedIn) {
+    if (!isLoading && !isLoggedIn) {
       router.push('/login');
     }
-  }, [isLoggedIn, router]);
+  }, [isLoggedIn, isLoading, router]);
 
-  if (!isLoggedIn) {
-    return null;
+  if (isLoading || !isLoggedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-8 h-8 border-4 border-[#31A895] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (

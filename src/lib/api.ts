@@ -89,9 +89,9 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   }
 
   if (!response.ok) {
-    if ((response.status === 401 || response.status === 403) && !path.includes('/api/admin/login')) {
+    if (response.status === 401 && !path.includes('/api/admin/login')) {
       clearToken();
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
     }

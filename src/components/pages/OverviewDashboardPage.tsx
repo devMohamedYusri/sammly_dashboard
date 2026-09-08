@@ -19,7 +19,12 @@ import {
   ApiSupportMessage,
 } from '@/types';
 
+import { useAuth } from '@/context/AuthContext';
+
 export default function OverviewDashboardPage() {
+  const { user } = useAuth();
+  const isFounder = user?.role === 'founder';
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,15 +41,27 @@ export default function OverviewDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const [finRes, usersRes, telRes, srcRes, supRes] = await Promise.allSettled([
-        getLedgerOverview(),
+      const promises: Promise<any>[] = [
         getUsers({ page: 1, limit: 1 }),
         getApiTelemetryOverview(24),
         getSourcingQualityMetrics(),
         getSupportMessages({ page: 1, limit: 5 }),
-      ]);
+      ];
 
-      if (finRes.status === 'fulfilled') setFinancials(finRes.value);
+      if (isFounder) {
+        promises.unshift(getLedgerOverview());
+      }
+
+      const results = await Promise.allSettled(promises);
+
+      let finRes, usersRes, telRes, srcRes, supRes;
+      if (isFounder) {
+        [finRes, usersRes, telRes, srcRes, supRes] = results;
+        if (finRes.status === 'fulfilled') setFinancials(finRes.value);
+      } else {
+        [usersRes, telRes, srcRes, supRes] = results;
+      }
+
       if (usersRes.status === 'fulfilled' && usersRes.value.stats) setUserStats(usersRes.value.stats);
       if (telRes.status === 'fulfilled') setTelemetry(telRes.value);
       if (srcRes.status === 'fulfilled') setSourcing(srcRes.value);
@@ -64,7 +81,7 @@ export default function OverviewDashboardPage() {
 
   useEffect(() => {
     loadAllMetrics();
-  }, []);
+  }, [isFounder]);
 
   const formatEGP = (num: number) => {
     const val = Number(num) || 0;

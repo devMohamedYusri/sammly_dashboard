@@ -10,8 +10,14 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login } = useAuth();
+  const { login, isLoggedIn, isLoading: authLoading } = useAuth();
   const router = useRouter();
+
+  React.useEffect(() => {
+    if (!authLoading && isLoggedIn) {
+      router.replace('/dashboard');
+    }
+  }, [isLoggedIn, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

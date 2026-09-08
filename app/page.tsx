@@ -5,16 +5,22 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function Home() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoggedIn) {
-      router.push('/dashboard');
-    } else {
-      router.push('/login');
+    if (!isLoading) {
+      if (isLoggedIn) {
+        router.push('/dashboard');
+      } else {
+        router.push('/login');
+      }
     }
-  }, [isLoggedIn, router]);
+  }, [isLoggedIn, isLoading, router]);
 
-  return null;
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="w-8 h-8 border-4 border-[#31A895] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 }
