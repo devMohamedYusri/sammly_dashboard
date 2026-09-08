@@ -11,6 +11,7 @@ export interface ApiUser {
   _id: string;
   email: string;
   username: string;
+  role?: 'founder' | 'admin' | 'user';
   status: 'pending' | 'active' | 'deactivated';
   credits?: number;
   tokens?: number;

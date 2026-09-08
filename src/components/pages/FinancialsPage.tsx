@@ -389,6 +389,26 @@ export default function FinancialsPage() {
     }
   };
 
+  // If user is not a founder, block entire Financials & Equity access
+  if (!isFounder) {
+    return (
+      <div className="p-12 rounded-2xl bg-amber-50 border border-amber-200 text-center max-w-xl mx-auto space-y-4 my-12 shadow-sm">
+        <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center mx-auto text-2xl font-bold">
+          🔒
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">Founder Privilege Required</h2>
+        <p className="text-sm text-slate-600 leading-relaxed">
+          The <strong>Financials & Equity</strong> portal contains company debt waterfalls, cryptographic accounting ledgers, and founder equity governance. Access is restricted exclusively to the <strong>Founder</strong> role.
+        </p>
+        <div className="pt-2">
+          <span className="text-xs px-3 py-1 rounded-full bg-amber-200 text-amber-900 font-semibold">
+            Logged In As: {user?.email} ({user?.role || 'Admin'})
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header with Title & Quick Actions */}

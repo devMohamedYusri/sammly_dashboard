@@ -4,10 +4,14 @@ import React, { useState, useEffect } from 'react';
 import DataTable from '@/components/common/DataTable';
 import Badge from '@/components/common/Badge';
 import StatCard from '@/components/common/StatCard';
+import { useAuth } from '@/context/AuthContext';
 import { getUsers, activateUser, deactivateUser } from '@/lib/api';
 import { ApiUser } from '@/types';
 
 export default function UserManagementPage() {
+  const { user: currentUser } = useAuth();
+  const isFounder = currentUser?.role === 'founder';
+
   const [users, setUsers] = useState<ApiUser[]>([]);
   const [stats, setStats] = useState({ totalUsers: 0, activeUsers: 0, deactivatedUsers: 0 });
   const [loading, setLoading] = useState(true);
@@ -93,6 +97,32 @@ export default function UserManagementPage() {
     { key: 'email' as const, label: 'EMAIL' },
     { key: 'username' as const, label: 'USERNAME' },
     {
+      key: 'role' as const,
+      label: 'ROLE',
+      render: (value: unknown) => {
+        const roleStr = String(value || 'user').toLowerCase();
+        if (roleStr === 'founder') {
+          return (
+            <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase bg-purple-100 text-purple-800 border border-purple-200">
+              FOUNDER
+            </span>
+          );
+        }
+        if (roleStr === 'admin') {
+          return (
+            <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase bg-blue-100 text-blue-800 border border-blue-200">
+              ADMIN
+            </span>
+          );
+        }
+        return (
+          <span className="px-2 py-0.5 rounded text-[11px] font-medium uppercase bg-slate-100 text-slate-700">
+            USER
+          </span>
+        );
+      }
+    },
+    {
       key: 'credits' as const,
       label: 'CREDITS',
       render: (value: unknown, row: ApiUser) => {
@@ -121,21 +151,36 @@ export default function UserManagementPage() {
     {
       key: '_id' as const,
       label: 'ACTION',
-      render: (value: unknown, row: ApiUser) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleToggleStatus(row);
-          }}
-          className={`text-sm font-medium ${
-            row.status === 'active'
-              ? 'text-[#FF5A6E] hover:text-[#e64e5f]'
-              : 'text-[#31A895] hover:text-[#289076]'
-          }`}
-        >
-          {row.status === 'active' ? 'Deactivate' : 'Activate'}
-        </button>
-      )
+      render: (value: unknown, row: ApiUser) => {
+        const isTargetFounder = row.role === 'founder';
+        const isTargetAdmin = row.role === 'admin';
+
+        // Founder cannot be deactivated by anyone
+        if (isTargetFounder) {
+          return <span className="text-xs text-slate-400 italic">Protected</span>;
+        }
+
+        // Admin cannot be modified if current user is not a founder
+        if (isTargetAdmin && !isFounder) {
+          return <span className="text-xs text-slate-400 italic">Admin</span>;
+        }
+
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleStatus(row);
+            }}
+            className={`text-sm font-medium ${
+              row.status === 'active'
+                ? 'text-[#FF5A6E] hover:text-[#e64e5f]'
+                : 'text-[#31A895] hover:text-[#289076]'
+            }`}
+          >
+            {row.status === 'active' ? 'Deactivate' : 'Activate'}
+          </button>
+        );
+      }
     },
   ];
 

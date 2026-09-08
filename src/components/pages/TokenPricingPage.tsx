@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { getPackages, addPackage, updatePackage, deletePackage } from '@/lib/api';
 import { ApiPackage } from '@/types';
 
 export default function TokenPricingPage() {
+  const { user } = useAuth();
+  const isFounder = user?.role === 'founder';
+
   const [packages, setPackages] = useState<ApiPackage[]>([]);
   const [freeTokens, setFreeTokens] = useState(15);
   const [loading, setLoading] = useState(true);
@@ -138,6 +142,26 @@ export default function TokenPricingPage() {
       setSubmitting(false);
     }
   };
+
+  // Founder-only access enforcement
+  if (!isFounder) {
+    return (
+      <div className="p-12 rounded-2xl bg-amber-50 border border-amber-200 text-center max-w-xl mx-auto space-y-4 my-12 shadow-sm">
+        <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center mx-auto text-2xl font-bold">
+          🔒
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">Founder Privilege Required</h2>
+        <p className="text-sm text-slate-600 leading-relaxed">
+          The <strong>Token Pricing & Packages</strong> portal allows adjusting monetized Egyptian token pricing, package limits, and commercial terms. Access is restricted exclusively to the <strong>Founder</strong> role.
+        </p>
+        <div className="pt-2">
+          <span className="text-xs px-3 py-1 rounded-full bg-amber-200 text-amber-900 font-semibold">
+            Logged In As: {user?.email} ({user?.role || 'Admin'})
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   if (loading && packages.length === 0) {
     return (

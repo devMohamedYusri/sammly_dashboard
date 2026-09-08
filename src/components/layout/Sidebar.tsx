@@ -7,7 +7,8 @@ import { useAuth } from '@/context/AuthContext';
 
 const Sidebar: React.FC = () => {
   const { activeNav, setActiveNav } = useNavigation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const isFounder = user?.role === 'founder';
 
   const navItems = [
     {
@@ -15,44 +16,53 @@ const Sidebar: React.FC = () => {
       label: 'Command Center',
       href: '/dashboard',
       icon: '/icon-telemetry.svg',
+      founderOnly: false,
     },
     {
       id: 'users' as const,
       label: 'User Management',
       href: '/dashboard/users',
       icon: '/icon-user-mgmt.svg',
+      founderOnly: false,
     },
     {
       id: 'token-pricing' as const,
       label: 'Token Pricing',
       href: '/dashboard/token-pricing',
       icon: '/icon-sparkles.svg',
+      founderOnly: true,
     },
     {
       id: 'support' as const,
       label: 'Customer Support',
       href: '/dashboard/support',
       icon: '/icon-headset.svg',
+      founderOnly: false,
     },
     {
       id: 'sourcing' as const,
       label: 'AI & Sourcing',
       href: '/dashboard/sourcing',
       icon: '/icon-sourcing.svg',
+      founderOnly: false,
     },
     {
       id: 'financials' as const,
       label: 'Financials & Equity',
       href: '/dashboard/financials',
       icon: '/icon-financials.svg',
+      founderOnly: true,
     },
     {
       id: 'system' as const,
       label: 'App & Feature Flags',
       href: '/dashboard/system',
       icon: '/icon-system.svg',
+      founderOnly: false,
     },
   ];
+
+  const visibleNavItems = navItems.filter(item => !item.founderOnly || isFounder);
 
   const handleLogout = () => {
     logout();
@@ -71,7 +81,7 @@ const Sidebar: React.FC = () => {
 
       {/* Navigation Items */}
       <nav className="flex-1 px-4 py-2 space-y-1">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <Link
             key={item.id}
             href={item.href}
