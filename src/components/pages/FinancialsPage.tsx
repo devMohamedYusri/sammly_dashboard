@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import StatCard from '@/components/common/StatCard';
 import Badge from '@/components/common/Badge';
 import Card from '@/components/common/Card';
+import { useAuth } from '@/context/AuthContext';
 import {
   getLedgerOverview,
   getLedgerEntries,
@@ -12,24 +13,39 @@ import {
   recordReversal,
   getGovernanceOverview,
   toggleMilitaryHiatus,
+  getTransactionsAnalytics,
 } from '@/lib/api';
 import {
   FinancialOverviewData,
   FinancialLedgerEntry,
   GovernanceOverviewData,
+  PurchasesAnalyticsData,
+  TransactionItem,
   LedgerEntryType,
   LedgerCategory,
   LedgerCurrency,
 } from '@/types';
 
 export default function FinancialsPage() {
+  const { user } = useAuth();
+  const isFounder = user?.role === 'founder';
+
   // State
-  const [activeTab, setActiveTab] = useState<'overview' | 'ledger' | 'governance'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'ledger' | 'governance' | 'purchases'>('overview');
   const [overview, setOverview] = useState<FinancialOverviewData | null>(null);
   const [entries, setEntries] = useState<FinancialLedgerEntry[]>([]);
   const [governance, setGovernance] = useState<GovernanceOverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Purchases / Subscriptions State (Founder-Only)
+  const [purchasesData, setPurchasesData] = useState<PurchasesAnalyticsData | null>(null);
+  const [purchasesLoading, setPurchasesLoading] = useState(false);
+  const [purchasesError, setPurchasesError] = useState<string | null>(null);
+  const [txPage, setTxPage] = useState(1);
+  const [txStatus, setTxStatus] = useState<string>('ALL');
+  const [txPackageId, setTxPackageId] = useState<string>('ALL');
+  const [txSearch, setTxSearch] = useState<string>('');
 
   // Ledger Filter & Pagination State
   const [page, setPage] = useState(1);
@@ -116,9 +132,37 @@ export default function FinancialsPage() {
     }
   }, [page, filterType, filterCategory, filterCurrency]);
 
+  // Fetch Purchases & Subscriptions data (Founder only)
+  const loadPurchases = useCallback(async () => {
+    if (!isFounder) return;
+    setPurchasesLoading(true);
+    setPurchasesError(null);
+    try {
+      const data = await getTransactionsAnalytics({
+        page: txPage,
+        limit: 15,
+        status: txStatus,
+        packageId: txPackageId,
+        search: txSearch,
+      });
+      setPurchasesData(data);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to load purchases data';
+      setPurchasesError(msg);
+    } finally {
+      setPurchasesLoading(false);
+    }
+  }, [isFounder, txPage, txStatus, txPackageId, txSearch]);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (activeTab === 'purchases' && isFounder) {
+      loadPurchases();
+    }
+  }, [activeTab, isFounder, loadPurchases]);
 
   // Handle expense injection submit
   const handleExpenseSubmit = async (e: React.FormEvent) => {
@@ -507,6 +551,21 @@ export default function FinancialsPage() {
           </svg>
           Founder Equity & Military Hiatus
         </button>
+        <button
+          onClick={() => setActiveTab('purchases')}
+          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
+            activeTab === 'purchases'
+              ? 'border-[#31A895] text-[#31A895]'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="2" y="5" width="20" height="14" rx="2" />
+            <line x1="2" y1="10" x2="22" y2="10" />
+          </svg>
+          Purchases & Subscriptions
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold ml-1">FOUNDER</span>
+        </button>
       </div>
 
       {/* Loading Skeleton */}
@@ -522,7 +581,7 @@ export default function FinancialsPage() {
       {activeTab === 'overview' && overview && (
         <div className="space-y-8">
           {/* Top KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <StatCard
               title="OUTSTANDING FOUNDER DEBT"
               value={formatEGP(overview.debtWaterfall.netOutstandingDebtEGP)}
@@ -566,6 +625,18 @@ export default function FinancialsPage() {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0E5FBF" strokeWidth="2">
                   <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
                   <line x1="1" y1="10" x2="23" y2="10" />
+                </svg>
+              }
+            />
+
+            <StatCard
+              title={`NET PROFIT (${overview.profitability?.profitMarginPercent ?? 0}%)`}
+              value={formatEGP(overview.profitability?.netProfitEGP || 0)}
+              valueColor={(overview.profitability?.netProfitEGP ?? 0) >= 0 ? 'text-[#12924D]' : 'text-[#FF5A6E]'}
+              icon={
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={(overview.profitability?.netProfitEGP ?? 0) >= 0 ? '#12924D' : '#FF5A6E'} strokeWidth="2">
+                  <path d="M22 7L13.5 15.5L8.5 10.5L2 17" />
+                  <polyline points="16 7 22 7 22 13" />
                 </svg>
               }
             />
@@ -1073,6 +1144,382 @@ export default function FinancialsPage() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: PURCHASES & SUBSCRIPTIONS (FOUNDER-ONLY) */}
+      {/* ========================================================================= */}
+      {activeTab === 'purchases' && (
+        <div className="space-y-6">
+          {!isFounder ? (
+            /* Role Check Banner: Non-founder access blocked */
+            <div className="p-8 rounded-2xl bg-amber-50 border border-amber-200 text-center max-w-2xl mx-auto space-y-4">
+              <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-2xl">
+                🔒
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Founder Privilege Required</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Raw client purchase histories, transaction gateway identifiers, and subscriber monetization records are restricted exclusively to the <strong>Founder</strong> role for corporate confidentiality and user privacy.
+              </p>
+              <div className="pt-2">
+                <span className="text-xs px-3 py-1 rounded-full bg-amber-200 text-amber-900 font-semibold">
+                  Your Current Role: {user?.role || 'Admin'}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <>
+              {purchasesError && (
+                <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-[#FF5A6E] text-sm flex items-center justify-between">
+                  <span>{purchasesError}</span>
+                  <button onClick={() => setPurchasesError(null)} className="text-red-400 hover:text-red-600">✕</button>
+                </div>
+              )}
+
+              {purchasesLoading && !purchasesData ? (
+                <div className="text-center py-16 text-slate-400 text-sm animate-pulse">
+                  Loading monetization analytics, package performance, and purchase records...
+                </div>
+              ) : purchasesData && (
+                <>
+                  {/* Top Analytics Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <StatCard
+                      title="TOTAL REVENUE COLLECTED"
+                      value={formatEGP(purchasesData.analytics.totalGrossRevenueEGP)}
+                      valueColor="text-[#0E5FBF]"
+                      icon={
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0E5FBF" strokeWidth="2">
+                          <rect x="2" y="5" width="20" height="14" rx="2" />
+                          <line x1="2" y1="10" x2="22" y2="10" />
+                        </svg>
+                      }
+                    />
+
+                    <StatCard
+                      title="COMPLETED TRANSACTIONS"
+                      value={purchasesData.analytics.completedCount}
+                      valueColor="text-[#12924D]"
+                      icon={
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#12924D" strokeWidth="2">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      }
+                    />
+
+                    <StatCard
+                      title="AVERAGE ORDER VALUE"
+                      value={formatEGP(purchasesData.analytics.averageOrderValueEGP)}
+                      valueColor="text-slate-900"
+                      icon={
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#31A895" strokeWidth="2">
+                          <line x1="12" y1="1" x2="12" y2="23" />
+                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                        </svg>
+                      }
+                    />
+
+                    <StatCard
+                      title="FAILED / ABANDONED"
+                      value={purchasesData.analytics.failedCount}
+                      valueColor={purchasesData.analytics.failedCount > 0 ? 'text-[#FF5A6E]' : 'text-slate-400'}
+                      icon={
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF5A6E" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="15" y1="9" x2="9" y2="15" />
+                          <line x1="9" y1="9" x2="15" y2="15" />
+                        </svg>
+                      }
+                    />
+                  </div>
+
+                  {/* Visual Analytics & Charts */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Revenue Trend Over 30 Days (Responsive SVG Chart) */}
+                    <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-base font-bold text-slate-900">30-Day Platform Revenue Trend</h3>
+                          <p className="text-xs text-slate-500 mt-0.5">Daily volume of successful Paymob token purchases</p>
+                        </div>
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-[#E8F5F3] text-[#31A895] font-semibold">
+                          30 Days Active
+                        </span>
+                      </div>
+
+                      {purchasesData.analytics.dailyRevenueTrend.length === 0 ? (
+                        <div className="h-44 flex items-center justify-center text-slate-400 text-xs italic bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                          No completed purchases recorded in the last 30 days.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="h-44 flex items-end gap-2 pt-4 px-2 bg-slate-50 rounded-xl border border-slate-100">
+                            {(() => {
+                              const maxVal = Math.max(...purchasesData.analytics.dailyRevenueTrend.map(d => d.revenue), 1);
+                              return purchasesData.analytics.dailyRevenueTrend.map((pt, idx) => {
+                                const heightPct = Math.max(8, Math.round((pt.revenue / maxVal) * 100));
+                                return (
+                                  <div key={idx} className="flex-1 flex flex-col items-center gap-1 group relative">
+                                    <div
+                                      className="w-full rounded-t bg-gradient-to-t from-[#31A895] to-[#45cfba] hover:brightness-110 transition-all cursor-pointer"
+                                      style={{ height: `${heightPct}%` }}
+                                    />
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-10 bg-slate-900 text-white text-[10px] rounded px-2 py-1 shadow-lg pointer-events-none whitespace-nowrap z-10">
+                                      {pt.date}: {formatEGP(pt.revenue)} ({pt.count} tx)
+                                    </div>
+                                    <span className="text-[9px] text-slate-400 truncate w-full text-center">
+                                      {pt.date.split('-').slice(1).join('/')}
+                                    </span>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                          <div className="flex justify-between text-[11px] text-slate-400 px-1">
+                            <span>Earliest: {purchasesData.analytics.dailyRevenueTrend[0]?.date}</span>
+                            <span>Latest: {purchasesData.analytics.dailyRevenueTrend[purchasesData.analytics.dailyRevenueTrend.length - 1]?.date}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Package Popularity & Revenue Contribution */}
+                    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-base font-bold text-slate-900">Revenue by Package</h3>
+                        <span className="text-xs text-slate-400">Share of Total</span>
+                      </div>
+
+                      {purchasesData.analytics.packageBreakdown.length === 0 ? (
+                        <div className="h-44 flex items-center justify-center text-slate-400 text-xs italic bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                          No package purchase distribution available yet.
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {purchasesData.analytics.packageBreakdown.map((pkg, idx) => {
+                            const totalRev = purchasesData.analytics.totalGrossRevenueEGP || 1;
+                            const share = Math.round((pkg.revenue / totalRev) * 100);
+                            return (
+                              <div key={idx} className="space-y-1.5">
+                                <div className="flex justify-between text-xs font-medium">
+                                  <span className="text-slate-800 font-bold uppercase tracking-wider">{pkg.packageId}</span>
+                                  <span className="text-slate-600">{formatEGP(pkg.revenue)} ({share}%)</span>
+                                </div>
+                                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                                  <div
+                                    className="h-full bg-[#31A895] rounded-full"
+                                    style={{ width: `${Math.max(4, share)}%` }}
+                                  />
+                                </div>
+                                <div className="text-[10px] text-slate-400 text-right">
+                                  {pkg.count} total purchases
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Filters & Transaction Table */}
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900">All Client Purchases & Subscriptions</h3>
+                        <p className="text-xs text-slate-500">Live ledger of payment gateway intents and fulfillment</p>
+                      </div>
+
+                      {/* Filter Controls */}
+                      <div className="flex flex-wrap items-center gap-3">
+                        {/* Search Input */}
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Search email, name or ID..."
+                            value={txSearch}
+                            onChange={(e) => {
+                              setTxSearch(e.target.value);
+                              setTxPage(1);
+                            }}
+                            className="text-xs rounded-lg border border-slate-300 px-3 py-2 pr-8 w-48 sm:w-56 focus:outline-none focus:border-[#31A895]"
+                          />
+                          {txSearch && (
+                            <button
+                              onClick={() => {
+                                setTxSearch('');
+                                setTxPage(1);
+                              }}
+                              className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Status Filter */}
+                        <select
+                          value={txStatus}
+                          onChange={(e) => {
+                            setTxStatus(e.target.value);
+                            setTxPage(1);
+                          }}
+                          className="text-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:border-[#31A895]"
+                        >
+                          <option value="ALL">All Statuses</option>
+                          <option value="completed">Completed</option>
+                          <option value="pending">Pending</option>
+                          <option value="failed">Failed</option>
+                        </select>
+
+                        {/* Package Filter */}
+                        <select
+                          value={txPackageId}
+                          onChange={(e) => {
+                            setTxPackageId(e.target.value);
+                            setTxPage(1);
+                          }}
+                          className="text-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:border-[#31A895]"
+                        >
+                          <option value="ALL">All Packages</option>
+                          <option value="starter">Starter</option>
+                          <option value="pro">Pro</option>
+                          <option value="business">Business</option>
+                          <option value="enterprise">Enterprise</option>
+                        </select>
+
+                        <button
+                          onClick={loadPurchases}
+                          title="Refresh Purchases"
+                          className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="23 4 23 10 17 10" />
+                            <polyline points="1 20 1 14 7 14" />
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs text-slate-600">
+                        <thead className="bg-[#f8fafc] text-slate-700 uppercase font-semibold border-b border-slate-200">
+                          <tr>
+                            <th className="py-3.5 px-4">Date / Time</th>
+                            <th className="py-3.5 px-4">Customer</th>
+                            <th className="py-3.5 px-4">Package</th>
+                            <th className="py-3.5 px-4">Amount</th>
+                            <th className="py-3.5 px-4">Credits Granted</th>
+                            <th className="py-3.5 px-4">Status</th>
+                            <th className="py-3.5 px-4">Provider Ref</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {purchasesData.transactions.length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className="text-center py-12 text-slate-400 italic">
+                                No transaction records found matching your filters.
+                              </td>
+                            </tr>
+                          ) : (
+                            purchasesData.transactions.map((tx) => (
+                              <tr key={tx.id} className="hover:bg-slate-50/80 transition-colors">
+                                <td className="py-3 px-4 font-mono text-slate-500 whitespace-nowrap">
+                                  {new Date(tx.createdAt).toLocaleDateString()}
+                                  <div className="text-[10px] text-slate-400">
+                                    {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                </td>
+
+                                <td className="py-3 px-4">
+                                  {tx.user ? (
+                                    <div>
+                                      <span className="font-semibold text-slate-900">{tx.user.name}</span>
+                                      <div className="text-slate-400 text-[11px] truncate max-w-[180px]">
+                                        {tx.user.email}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-400 italic">Anonymous User</span>
+                                  )}
+                                </td>
+
+                                <td className="py-3 px-4">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-slate-800 uppercase tracking-wide">
+                                      {tx.packageInfo?.title || tx.packageId}
+                                    </span>
+                                    {tx.packageInfo?.interval === 'monthly' && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold border border-blue-200">
+                                        MONTHLY
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+
+                                <td className="py-3 px-4 font-bold text-slate-900 whitespace-nowrap">
+                                  {formatEGP(tx.amount)}
+                                </td>
+
+                                <td className="py-3 px-4 font-semibold text-[#31A895]">
+                                  +{tx.credits.toLocaleString()} tokens
+                                </td>
+
+                                <td className="py-3 px-4">
+                                  {tx.paymentStatus === 'completed' ? (
+                                    <Badge variant="success">COMPLETED</Badge>
+                                  ) : tx.paymentStatus === 'pending' ? (
+                                    <Badge variant="warning">PENDING</Badge>
+                                  ) : (
+                                    <Badge variant="danger">FAILED</Badge>
+                                  )}
+                                </td>
+
+                                <td className="py-3 px-4 font-mono text-[11px] text-slate-500 max-w-[140px] truncate" title={tx.paymentId}>
+                                  {tx.paymentId || 'N/A'}
+                                  <div className="text-[10px] uppercase text-slate-400">
+                                    {tx.paymentProvider}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination */}
+                    {purchasesData.pagination.totalPages > 1 && (
+                      <div className="flex items-center justify-between pt-4 border-t border-slate-100 text-xs text-slate-500">
+                        <span>
+                          Showing page {purchasesData.pagination.page} of {purchasesData.pagination.totalPages} ({purchasesData.pagination.total} total)
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setTxPage(p => Math.max(1, p - 1))}
+                            disabled={purchasesData.pagination.page <= 1}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                          >
+                            Previous
+                          </button>
+                          <button
+                            onClick={() => setTxPage(p => Math.min(purchasesData.pagination.totalPages, p + 1))}
+                            disabled={purchasesData.pagination.page >= purchasesData.pagination.totalPages}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </>
+          )}
         </div>
       )}
 

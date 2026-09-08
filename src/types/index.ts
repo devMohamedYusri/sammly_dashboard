@@ -371,11 +371,85 @@ export interface ExpenseCategoryBreakdown {
   transactionCount: number;
 }
 
+export interface ProfitabilityData {
+  netProfitEGP: number;
+  profitMarginPercent: number;
+  isProfitable: boolean;
+  totalExpensesEGP: number;
+}
+
 export interface FinancialOverviewData {
   security: LedgerSecurityData;
   debtWaterfall: DebtWaterfallData;
   platformRevenue: PlatformRevenueData;
+  profitability?: ProfitabilityData;
   categoryBreakdown: ExpenseCategoryBreakdown[];
+}
+
+export interface TransactionPackageInfo {
+  title?: string;
+  titleAr?: string;
+  interval?: 'one_time' | 'monthly' | string;
+  badge?: string | null;
+}
+
+export interface TransactionUserInfo {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string | null;
+  isSubscription?: boolean;
+}
+
+export interface TransactionItem {
+  id: string;
+  paymentId: string;
+  amount: number;
+  currency: string;
+  credits: number;
+  paymentStatus: 'completed' | 'pending' | 'failed' | string;
+  paymentProvider: string;
+  packageId: string;
+  packageInfo?: TransactionPackageInfo | null;
+  user?: TransactionUserInfo | null;
+  failureReason?: string | null;
+  createdAt: string;
+}
+
+export interface PackageRevenueBreakdown {
+  packageId: string;
+  count: number;
+  revenue: number;
+}
+
+export interface DailyRevenueTrendPoint {
+  date: string;
+  revenue: number;
+  count: number;
+}
+
+export interface PurchasesAnalyticsData {
+  analytics: {
+    totalGrossRevenueEGP: number;
+    completedCount: number;
+    failedCount: number;
+    pendingCount: number;
+    averageOrderValueEGP: number;
+    packageBreakdown: PackageRevenueBreakdown[];
+    dailyRevenueTrend: DailyRevenueTrendPoint[];
+  };
+  transactions: TransactionItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface ApiPurchasesAnalyticsResponse {
+  status: string;
+  data: PurchasesAnalyticsData;
 }
 
 export interface ApiLedgerOverviewResponse {

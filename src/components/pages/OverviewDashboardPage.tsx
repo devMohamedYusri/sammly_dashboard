@@ -100,7 +100,7 @@ export default function OverviewDashboardPage() {
       )}
 
       {/* Primary KPI Ribbon */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Users */}
         <StatCard
           title="TOTAL ACCOUNTS"
@@ -111,15 +111,23 @@ export default function OverviewDashboardPage() {
 
         {/* Gross Revenue */}
         <StatCard
-          title="GROSS PLATFORM REVENUE"
+          title="GROSS REVENUE"
           value={formatEGP(financials?.platformRevenue.grossPlatformRevenueEGP || 0)}
           iconSrc="/icon-sparkles.svg"
           valueColor="text-[#0E5FBF]"
         />
 
+        {/* Net Profit & Margin */}
+        <StatCard
+          title={`NET PROFIT (${financials?.profitability?.profitMarginPercent ?? 0}%)`}
+          value={formatEGP(financials?.profitability?.netProfitEGP || 0)}
+          iconSrc="/icon-financials.svg"
+          valueColor={(financials?.profitability?.netProfitEGP ?? 0) >= 0 ? 'text-[#12924D]' : 'text-[#FF5A6E]'}
+        />
+
         {/* Outstanding Debt */}
         <StatCard
-          title="OUTSTANDING FOUNDER DEBT"
+          title="OUTSTANDING DEBT"
           value={formatEGP(financials?.debtWaterfall.netOutstandingDebtEGP || 0)}
           iconSrc="/icon-financials.svg"
           valueColor="text-[#FF5A6E]"
@@ -127,7 +135,7 @@ export default function OverviewDashboardPage() {
 
         {/* Open Support Issues */}
         <StatCard
-          title="OPEN SUPPORT TICKETS"
+          title="OPEN TICKETS"
           value={supportTickets?.stats.totalOpen || 0}
           iconSrc="/icon-headset.svg"
           valueColor={supportTickets?.stats.totalOpen ? 'text-[#FF5A6E]' : 'text-[#1ECB7F]'}

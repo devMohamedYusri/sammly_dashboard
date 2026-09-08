@@ -30,6 +30,8 @@ import {
   LedgerEntryType,
   LedgerCategory,
   LedgerCurrency,
+  ApiPurchasesAnalyticsResponse,
+  PurchasesAnalyticsData,
 } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sammly-backend-p3z7.onrender.com';
@@ -381,6 +383,27 @@ export async function toggleMilitaryHiatus(payload: ToggleMilitaryHiatusPayload)
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
+  return res.data;
+}
+
+export interface GetTransactionsParams {
+  page?: number;
+  limit?: number;
+  status?: string;
+  packageId?: string;
+  search?: string;
+}
+
+export async function getTransactionsAnalytics(params: GetTransactionsParams = {}): Promise<PurchasesAnalyticsData> {
+  const query = new URLSearchParams();
+  if (params.page !== undefined) query.append('page', String(params.page));
+  if (params.limit !== undefined) query.append('limit', String(params.limit));
+  if (params.status && params.status !== 'ALL') query.append('status', params.status);
+  if (params.packageId && params.packageId !== 'ALL') query.append('packageId', params.packageId);
+  if (params.search && params.search.trim()) query.append('search', params.search.trim());
+
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  const res = await apiFetch<ApiPurchasesAnalyticsResponse>(`/api/admin/financials/transactions${queryString}`);
   return res.data;
 }
 
