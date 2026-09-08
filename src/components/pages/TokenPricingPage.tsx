@@ -104,18 +104,26 @@ export default function TokenPricingPage() {
     try {
       const promises: Promise<unknown>[] = [];
 
-      // Update free package tokens
-      promises.push(updatePackage('free', { tokens: freeTokens }));
+      // Update free package tokens with explicit localized titles
+      promises.push(
+        updatePackage('free', {
+          tokens: Number(freeTokens),
+          newTitle: 'Free Trial',
+          newTitleAr: 'باقة تجريبية',
+        })
+      );
 
-      // Update all paid packages
+      // Update all paid packages ensuring title and titleAr are never empty
       packages.forEach((pkg) => {
+        const titleFallback = pkg.title?.trim() || pkg.packageId;
+        const titleArFallback = pkg.titleAr?.trim() || pkg.packageId;
         promises.push(
           updatePackage(pkg.packageId, {
-            tokens: pkg.tokens,
-            price: pkg.price,
-            newTitle: pkg.title,
-            newTitleAr: pkg.titleAr,
-            newBadge: pkg.badge || null,
+            tokens: Number(pkg.tokens),
+            price: Number(pkg.price),
+            newTitle: titleFallback,
+            newTitleAr: titleArFallback,
+            newBadge: pkg.badge?.trim() || null,
           })
         );
       });
