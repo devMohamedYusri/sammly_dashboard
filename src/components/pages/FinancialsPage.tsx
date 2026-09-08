@@ -322,13 +322,31 @@ export default function FinancialsPage() {
   };
 
   // Formatting helpers
-  const formatEGP = (num: number) =>
-    new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP' }).format(num || 0);
+  const formatEGP = (num: number) => {
+    const val = Number(num) || 0;
+    return new Intl.NumberFormat('en-EG', {
+      style: 'currency',
+      currency: 'EGP',
+      maximumFractionDigits: 0,
+    }).format(val);
+  };
+
+  const formatCompactEGP = (num: number) => {
+    const val = Number(num) || 0;
+    if (Math.abs(val) >= 1_000_000) {
+      return `EGP ${(val / 1_000_000).toFixed(2)}M`;
+    }
+    if (Math.abs(val) >= 100_000) {
+      return `EGP ${(val / 1_000).toFixed(1)}k`;
+    }
+    return formatEGP(val);
+  };
 
   const formatOriginalAmount = (amount: number, currency: string) => {
-    if (currency === 'USD') return `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-    if (currency === 'EUR') return `€${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-    return `EGP ${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    const val = Number(amount) || 0;
+    if (currency === 'USD') return `$${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    if (currency === 'EUR') return `€${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    return `EGP ${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   };
 
   const getEntryBadge = (type: LedgerEntryType) => {
@@ -581,10 +599,11 @@ export default function FinancialsPage() {
       {activeTab === 'overview' && overview && (
         <div className="space-y-8">
           {/* Top KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
             <StatCard
-              title="OUTSTANDING FOUNDER DEBT"
-              value={formatEGP(overview.debtWaterfall.netOutstandingDebtEGP)}
+              title="OUTSTANDING DEBT"
+              value={formatCompactEGP(overview.debtWaterfall.netOutstandingDebtEGP)}
+              subtitle={formatEGP(overview.debtWaterfall.netOutstandingDebtEGP)}
               valueColor="text-[#FF5A6E]"
               icon={
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF5A6E" strokeWidth="2">
@@ -596,8 +615,9 @@ export default function FinancialsPage() {
             />
 
             <StatCard
-              title="TOTAL CAPITAL INJECTED"
-              value={formatEGP(overview.debtWaterfall.totalInjectedDebtEGP)}
+              title="TOTAL INJECTED"
+              value={formatCompactEGP(overview.debtWaterfall.totalInjectedDebtEGP)}
+              subtitle={formatEGP(overview.debtWaterfall.totalInjectedDebtEGP)}
               valueColor="text-slate-900"
               icon={
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#31A895" strokeWidth="2">
@@ -607,8 +627,9 @@ export default function FinancialsPage() {
             />
 
             <StatCard
-              title="TOTAL DEBT REPAID"
-              value={formatEGP(overview.debtWaterfall.totalRepaidDebtEGP)}
+              title="TOTAL REPAID"
+              value={formatCompactEGP(overview.debtWaterfall.totalRepaidDebtEGP)}
+              subtitle={formatEGP(overview.debtWaterfall.totalRepaidDebtEGP)}
               valueColor="text-[#12924D]"
               icon={
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#12924D" strokeWidth="2">
@@ -618,8 +639,9 @@ export default function FinancialsPage() {
             />
 
             <StatCard
-              title="GROSS PAYMOB REVENUE"
-              value={formatEGP(overview.platformRevenue.grossPlatformRevenueEGP)}
+              title="GROSS REVENUE"
+              value={formatCompactEGP(overview.platformRevenue.grossPlatformRevenueEGP)}
+              subtitle={formatEGP(overview.platformRevenue.grossPlatformRevenueEGP)}
               valueColor="text-[#0E5FBF]"
               icon={
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0E5FBF" strokeWidth="2">
@@ -631,7 +653,8 @@ export default function FinancialsPage() {
 
             <StatCard
               title={`NET PROFIT (${overview.profitability?.profitMarginPercent ?? 0}%)`}
-              value={formatEGP(overview.profitability?.netProfitEGP || 0)}
+              value={formatCompactEGP(overview.profitability?.netProfitEGP || 0)}
+              subtitle={formatEGP(overview.profitability?.netProfitEGP || 0)}
               valueColor={(overview.profitability?.netProfitEGP ?? 0) >= 0 ? 'text-[#12924D]' : 'text-[#FF5A6E]'}
               icon={
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={(overview.profitability?.netProfitEGP ?? 0) >= 0 ? '#12924D' : '#FF5A6E'} strokeWidth="2">
@@ -690,11 +713,11 @@ export default function FinancialsPage() {
                   <span className="text-xs text-slate-400">Article 3.1</span>
                 </div>
 
-                <div className="mt-4 p-4 rounded-xl text-center space-y-2 border ${
+                <div className={`mt-4 p-4 rounded-xl text-center space-y-2 border ${
                   overview.debtWaterfall.dividendStatus === 'UNLOCKED'
                     ? 'bg-[#E7FCF3] border-[#A3F3CF] text-[#12924D]'
                     : 'bg-[#FFE8EC] border-[#FFA3B3] text-[#CC2236]'
-                }">
+                }`}>
                   <div className="text-3xl">
                     {overview.debtWaterfall.dividendStatus === 'UNLOCKED' ? '🔓' : '🔒'}
                   </div>
@@ -1187,7 +1210,8 @@ export default function FinancialsPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <StatCard
                       title="TOTAL REVENUE COLLECTED"
-                      value={formatEGP(purchasesData.analytics.totalGrossRevenueEGP)}
+                      value={formatCompactEGP(purchasesData.analytics.totalGrossRevenueEGP)}
+                      subtitle={formatEGP(purchasesData.analytics.totalGrossRevenueEGP)}
                       valueColor="text-[#0E5FBF]"
                       icon={
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0E5FBF" strokeWidth="2">
@@ -1199,7 +1223,8 @@ export default function FinancialsPage() {
 
                     <StatCard
                       title="COMPLETED TRANSACTIONS"
-                      value={purchasesData.analytics.completedCount}
+                      value={purchasesData.analytics.completedCount.toLocaleString()}
+                      subtitle="Successful client orders"
                       valueColor="text-[#12924D]"
                       icon={
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#12924D" strokeWidth="2">
@@ -1210,7 +1235,8 @@ export default function FinancialsPage() {
 
                     <StatCard
                       title="AVERAGE ORDER VALUE"
-                      value={formatEGP(purchasesData.analytics.averageOrderValueEGP)}
+                      value={formatCompactEGP(purchasesData.analytics.averageOrderValueEGP)}
+                      subtitle={formatEGP(purchasesData.analytics.averageOrderValueEGP)}
                       valueColor="text-slate-900"
                       icon={
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#31A895" strokeWidth="2">
@@ -1222,7 +1248,8 @@ export default function FinancialsPage() {
 
                     <StatCard
                       title="FAILED / ABANDONED"
-                      value={purchasesData.analytics.failedCount}
+                      value={purchasesData.analytics.failedCount.toLocaleString()}
+                      subtitle="Declined / Unfinished"
                       valueColor={purchasesData.analytics.failedCount > 0 ? 'text-[#FF5A6E]' : 'text-slate-400'}
                       icon={
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF5A6E" strokeWidth="2">

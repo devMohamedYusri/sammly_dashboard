@@ -66,8 +66,26 @@ export default function OverviewDashboardPage() {
     loadAllMetrics();
   }, []);
 
-  const formatEGP = (num: number) =>
-    new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP' }).format(num || 0);
+  const formatEGP = (num: number) => {
+    const val = Number(num) || 0;
+    // Format full currency
+    return new Intl.NumberFormat('en-EG', {
+      style: 'currency',
+      currency: 'EGP',
+      maximumFractionDigits: 0,
+    }).format(val);
+  };
+
+  const formatCompactEGP = (num: number) => {
+    const val = Number(num) || 0;
+    if (Math.abs(val) >= 1_000_000) {
+      return `EGP ${(val / 1_000_000).toFixed(2)}M`;
+    }
+    if (Math.abs(val) >= 100_000) {
+      return `EGP ${(val / 1_000).toFixed(1)}k`;
+    }
+    return formatEGP(val);
+  };
 
   return (
     <div className="space-y-8">
@@ -100,11 +118,11 @@ export default function OverviewDashboardPage() {
       )}
 
       {/* Primary KPI Ribbon */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {/* Total Users */}
         <StatCard
           title="TOTAL ACCOUNTS"
-          value={userStats?.totalUsers || 0}
+          value={userStats?.totalUsers ? userStats.totalUsers.toLocaleString() : 0}
           iconSrc="/icon-user-mgmt.svg"
           valueColor="text-slate-900"
         />
@@ -112,7 +130,8 @@ export default function OverviewDashboardPage() {
         {/* Gross Revenue */}
         <StatCard
           title="GROSS REVENUE"
-          value={formatEGP(financials?.platformRevenue.grossPlatformRevenueEGP || 0)}
+          value={formatCompactEGP(financials?.platformRevenue.grossPlatformRevenueEGP || 0)}
+          subtitle={formatEGP(financials?.platformRevenue.grossPlatformRevenueEGP || 0)}
           iconSrc="/icon-sparkles.svg"
           valueColor="text-[#0E5FBF]"
         />
@@ -120,7 +139,8 @@ export default function OverviewDashboardPage() {
         {/* Net Profit & Margin */}
         <StatCard
           title={`NET PROFIT (${financials?.profitability?.profitMarginPercent ?? 0}%)`}
-          value={formatEGP(financials?.profitability?.netProfitEGP || 0)}
+          value={formatCompactEGP(financials?.profitability?.netProfitEGP || 0)}
+          subtitle={formatEGP(financials?.profitability?.netProfitEGP || 0)}
           iconSrc="/icon-financials.svg"
           valueColor={(financials?.profitability?.netProfitEGP ?? 0) >= 0 ? 'text-[#12924D]' : 'text-[#FF5A6E]'}
         />
@@ -128,7 +148,8 @@ export default function OverviewDashboardPage() {
         {/* Outstanding Debt */}
         <StatCard
           title="OUTSTANDING DEBT"
-          value={formatEGP(financials?.debtWaterfall.netOutstandingDebtEGP || 0)}
+          value={formatCompactEGP(financials?.debtWaterfall.netOutstandingDebtEGP || 0)}
+          subtitle={formatEGP(financials?.debtWaterfall.netOutstandingDebtEGP || 0)}
           iconSrc="/icon-financials.svg"
           valueColor="text-[#FF5A6E]"
         />
@@ -137,6 +158,7 @@ export default function OverviewDashboardPage() {
         <StatCard
           title="OPEN TICKETS"
           value={supportTickets?.stats.totalOpen || 0}
+          subtitle={`${supportTickets?.stats.totalMessages || 0} total tickets`}
           iconSrc="/icon-headset.svg"
           valueColor={supportTickets?.stats.totalOpen ? 'text-[#FF5A6E]' : 'text-[#1ECB7F]'}
         />
