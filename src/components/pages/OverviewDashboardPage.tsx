@@ -111,7 +111,9 @@ export default function OverviewDashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Platform Command Center</h1>
           <p className="text-slate-500 mt-1 text-sm">
-            Live operational health, founder debt waterfall, AI sourcing telemetry, and user management
+            {isFounder
+              ? 'Live operational health, founder debt waterfall, AI sourcing telemetry, and user management'
+              : 'Live operational health, AI sourcing telemetry, and user accounts overview'}
           </p>
         </div>
 
@@ -135,7 +137,7 @@ export default function OverviewDashboardPage() {
       )}
 
       {/* Primary KPI Ribbon */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${isFounder ? 'xl:grid-cols-5' : 'xl:grid-cols-2 max-w-2xl'} gap-4`}>
         {/* Total Users */}
         <StatCard
           title="TOTAL ACCOUNTS"
@@ -144,32 +146,37 @@ export default function OverviewDashboardPage() {
           valueColor="text-slate-900"
         />
 
-        {/* Gross Revenue */}
-        <StatCard
-          title="GROSS REVENUE"
-          value={formatCompactEGP(financials?.platformRevenue.grossPlatformRevenueEGP || 0)}
-          subtitle={formatEGP(financials?.platformRevenue.grossPlatformRevenueEGP || 0)}
-          iconSrc="/icon-sparkles.svg"
-          valueColor="text-[#0E5FBF]"
-        />
+        {/* Founder-Only Financial KPI Cards */}
+        {isFounder && (
+          <>
+            {/* Gross Revenue */}
+            <StatCard
+              title="GROSS REVENUE"
+              value={formatCompactEGP(financials?.platformRevenue.grossPlatformRevenueEGP || 0)}
+              subtitle={formatEGP(financials?.platformRevenue.grossPlatformRevenueEGP || 0)}
+              iconSrc="/icon-sparkles.svg"
+              valueColor="text-[#0E5FBF]"
+            />
 
-        {/* Net Profit & Margin */}
-        <StatCard
-          title={`NET PROFIT (${financials?.profitability?.profitMarginPercent ?? 0}%)`}
-          value={formatCompactEGP(financials?.profitability?.netProfitEGP || 0)}
-          subtitle={formatEGP(financials?.profitability?.netProfitEGP || 0)}
-          iconSrc="/icon-financials.svg"
-          valueColor={(financials?.profitability?.netProfitEGP ?? 0) >= 0 ? 'text-[#12924D]' : 'text-[#FF5A6E]'}
-        />
+            {/* Net Profit & Margin */}
+            <StatCard
+              title={`NET PROFIT (${financials?.profitability?.profitMarginPercent ?? 0}%)`}
+              value={formatCompactEGP(financials?.profitability?.netProfitEGP || 0)}
+              subtitle={formatEGP(financials?.profitability?.netProfitEGP || 0)}
+              iconSrc="/icon-financials.svg"
+              valueColor={(financials?.profitability?.netProfitEGP ?? 0) >= 0 ? 'text-[#12924D]' : 'text-[#FF5A6E]'}
+            />
 
-        {/* Outstanding Debt */}
-        <StatCard
-          title="OUTSTANDING DEBT"
-          value={formatCompactEGP(financials?.debtWaterfall.netOutstandingDebtEGP || 0)}
-          subtitle={formatEGP(financials?.debtWaterfall.netOutstandingDebtEGP || 0)}
-          iconSrc="/icon-financials.svg"
-          valueColor="text-[#FF5A6E]"
-        />
+            {/* Outstanding Debt */}
+            <StatCard
+              title="OUTSTANDING DEBT"
+              value={formatCompactEGP(financials?.debtWaterfall.netOutstandingDebtEGP || 0)}
+              subtitle={formatEGP(financials?.debtWaterfall.netOutstandingDebtEGP || 0)}
+              iconSrc="/icon-financials.svg"
+              valueColor="text-[#FF5A6E]"
+            />
+          </>
+        )}
 
         {/* Open Support Issues */}
         <StatCard
@@ -182,87 +189,89 @@ export default function OverviewDashboardPage() {
       </div>
 
       {/* Grid: Financials & AI Telemetry */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pillar 1: Financial Ledger & Debt Waterfall */}
-        <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-sm space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-lg bg-[#E8F5F3] text-[#31A895]">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                </svg>
-              </span>
-              <div>
-                <h2 className="text-base font-bold text-slate-900">Founder Debt & Waterfall</h2>
-                <p className="text-xs text-slate-500">Append-only cryptographic ledger</p>
+      <div className={`grid grid-cols-1 ${isFounder ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-6`}>
+        {/* Pillar 1: Financial Ledger & Debt Waterfall (Founder Only) */}
+        {isFounder && (
+          <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-sm space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 rounded-lg bg-[#E8F5F3] text-[#31A895]">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  </svg>
+                </span>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Founder Debt & Waterfall</h2>
+                  <p className="text-xs text-slate-500">Append-only cryptographic ledger</p>
+                </div>
               </div>
+
+              <Link
+                href="/dashboard/financials"
+                className="text-xs font-semibold text-[#31A895] hover:underline flex items-center gap-1"
+              >
+                Open Ledger ➔
+              </Link>
             </div>
 
-            <Link
-              href="/dashboard/financials"
-              className="text-xs font-semibold text-[#31A895] hover:underline flex items-center gap-1"
-            >
-              Open Ledger ➔
-            </Link>
+            {financials ? (
+              <div className="space-y-4">
+                {/* Chain Status Pill */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                  <span className="text-slate-600 font-medium">Cryptographic Chain:</span>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full font-bold text-xs ${
+                      financials.security.chainIntegrityValid
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {financials.security.cryptographicChain} ({financials.security.totalVerifiedBlocks} blocks)
+                  </span>
+                </div>
+
+                {/* Progress */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-600 font-medium">Debt Payoff Progress</span>
+                    <span className="font-bold text-[#31A895]">
+                      {financials.debtWaterfall.payoffProgressPercent}%
+                    </span>
+                  </div>
+                  <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#1ECB7F] to-[#31A895]"
+                      style={{ width: `${financials.debtWaterfall.payoffProgressPercent}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-400">
+                    <span>Repaid: {formatEGP(financials.debtWaterfall.totalRepaidDebtEGP)}</span>
+                    <span>Injected: {formatEGP(financials.debtWaterfall.totalInjectedDebtEGP)}</span>
+                  </div>
+                </div>
+
+                {/* Dividend Lock Banner */}
+                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">
+                      {financials.debtWaterfall.dividendStatus === 'UNLOCKED' ? '🔓' : '🔒'}
+                    </span>
+                    <span className="font-semibold text-slate-800">
+                      {financials.debtWaterfall.dividendStatus === 'UNLOCKED'
+                        ? 'Dividends Unlocked'
+                        : 'Dividends Locked (100% Debt First)'}
+                    </span>
+                  </div>
+                  <span className="text-slate-500 font-mono text-xs">
+                    {financials.platformRevenue.completedTransactionsCount} Paymob txns
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-slate-400 text-xs">Loading financial status...</div>
+            )}
           </div>
-
-          {financials ? (
-            <div className="space-y-4">
-              {/* Chain Status Pill */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-                <span className="text-slate-600 font-medium">Cryptographic Chain:</span>
-                <span
-                  className={`px-2.5 py-0.5 rounded-full font-bold text-xs ${
-                    financials.security.chainIntegrityValid
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}
-                >
-                  {financials.security.cryptographicChain} ({financials.security.totalVerifiedBlocks} blocks)
-                </span>
-              </div>
-
-              {/* Progress */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-600 font-medium">Debt Payoff Progress</span>
-                  <span className="font-bold text-[#31A895]">
-                    {financials.debtWaterfall.payoffProgressPercent}%
-                  </span>
-                </div>
-                <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#1ECB7F] to-[#31A895]"
-                    style={{ width: `${financials.debtWaterfall.payoffProgressPercent}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-slate-400">
-                  <span>Repaid: {formatEGP(financials.debtWaterfall.totalRepaidDebtEGP)}</span>
-                  <span>Injected: {formatEGP(financials.debtWaterfall.totalInjectedDebtEGP)}</span>
-                </div>
-              </div>
-
-              {/* Dividend Lock Banner */}
-              <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">
-                    {financials.debtWaterfall.dividendStatus === 'UNLOCKED' ? '🔓' : '🔒'}
-                  </span>
-                  <span className="font-semibold text-slate-800">
-                    {financials.debtWaterfall.dividendStatus === 'UNLOCKED'
-                      ? 'Dividends Unlocked'
-                      : 'Dividends Locked (100% Debt First)'}
-                  </span>
-                </div>
-                <span className="text-slate-500 font-mono text-xs">
-                  {financials.platformRevenue.completedTransactionsCount} Paymob txns
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-6 text-slate-400 text-xs">Loading financial status...</div>
-          )}
-        </div>
+        )}
 
         {/* Pillar 2: AI Sourcing & API Telemetry */}
         <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-sm space-y-6">
