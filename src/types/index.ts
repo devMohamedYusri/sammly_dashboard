@@ -399,7 +399,7 @@ export interface TransactionUserInfo {
   name: string;
   email: string;
   avatar?: string | null;
-  isSubscription?: boolean;
+  isSubscription?: string[] | boolean;
 }
 
 export interface TransactionItem {

@@ -407,4 +407,53 @@ export async function getTransactionsAnalytics(params: GetTransactionsParams = {
   return res.data;
 }
 
+// 9) Founder Test Account Credits
+export interface FounderCreditsData {
+  userId: string;
+  email: string;
+  role: string;
+  credits: number;
+}
+
+export async function getFounderCredits(customBaseUrl?: string, customToken?: string): Promise<FounderCreditsData> {
+  if (customBaseUrl) {
+    const token = customToken || getToken();
+    const res = await fetch(`${customBaseUrl}/api/admin/founder/credits`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new ApiError(data?.message || 'Failed to fetch founder credits', res.status);
+    return data.data;
+  }
+  const res = await apiFetch<{ status: string; data: FounderCreditsData }>('/api/admin/founder/credits');
+  return res.data;
+}
+
+export async function addFounderCredits(
+  amount: number = 100,
+  targetEmail?: string,
+  customBaseUrl?: string,
+  customToken?: string
+): Promise<FounderCreditsData & { added: number; message: string }> {
+  if (customBaseUrl) {
+    const token = customToken || getToken();
+    const res = await fetch(`${customBaseUrl}/api/admin/founder/credits`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ amount, targetEmail })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new ApiError(data?.message || 'Failed to add credits', res.status);
+    return data.data;
+  }
+  const res = await apiFetch<{ status: string; data: FounderCreditsData & { added: number; message: string } }>('/api/admin/founder/credits', {
+    method: 'POST',
+    body: JSON.stringify({ amount, targetEmail }),
+  });
+  return res.data;
+}
+
 

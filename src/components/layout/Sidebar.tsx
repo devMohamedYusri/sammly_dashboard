@@ -2,12 +2,14 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useNavigation } from '@/context/NavigationContext';
 import { useAuth } from '@/context/AuthContext';
 
 const Sidebar: React.FC = () => {
   const { activeNav, setActiveNav } = useNavigation();
   const { logout, user } = useAuth();
+  const pathname = usePathname();
   const isFounder = user?.role === 'founder';
 
   const navItems = [
@@ -54,13 +56,28 @@ const Sidebar: React.FC = () => {
       founderOnly: true,
     },
     {
-      id: 'system' as const,
-      label: 'App & Feature Flags',
-      href: '/dashboard/system',
-      icon: '/icon-system.svg',
+      id: 'design-test' as const,
+      label: 'AI Design Playground',
+      href: '/dashboard/design-test',
+      icon: '/icon-sparkles.svg',
       founderOnly: false,
     },
   ];
+
+  // Derive active tab from current route URL pathname
+  const getCurrentNav = () => {
+    if (!pathname) return activeNav;
+    if (pathname.startsWith('/dashboard/users')) return 'users';
+    if (pathname.startsWith('/dashboard/token-pricing')) return 'token-pricing';
+    if (pathname.startsWith('/dashboard/support') || pathname.startsWith('/dashboard/issue')) return 'support';
+    if (pathname.startsWith('/dashboard/sourcing')) return 'sourcing';
+    if (pathname.startsWith('/dashboard/financials')) return 'financials';
+    if (pathname.startsWith('/dashboard/design-test')) return 'design-test';
+    if (pathname === '/dashboard') return 'overview';
+    return activeNav;
+  };
+
+  const currentNav = getCurrentNav();
 
   const visibleNavItems = navItems.filter(item => !item.founderOnly || isFounder);
 
@@ -87,7 +104,7 @@ const Sidebar: React.FC = () => {
             href={item.href}
             onClick={() => setActiveNav(item.id)}
             className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all ${
-              activeNav === item.id
+              currentNav === item.id
                 ? 'bg-[#31A895] text-white shadow-sm'
                 : 'text-slate-700 hover:bg-slate-50'
             }`}
@@ -97,7 +114,7 @@ const Sidebar: React.FC = () => {
                 src={item.icon}
                 alt={item.label}
                 className="w-6 h-6"
-                style={activeNav === item.id ? { filter: 'brightness(0) invert(1)' } : {}}
+                style={currentNav === item.id ? { filter: 'brightness(0) invert(1)' } : {}}
               />
             </span>
             <span className="text-sm font-medium">{item.label}</span>

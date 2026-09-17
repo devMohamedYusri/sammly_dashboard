@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-type NavItem = 'overview' | 'users' | 'token-pricing' | 'support' | 'sourcing' | 'financials' | 'system';
+type NavItem = 'overview' | 'users' | 'token-pricing' | 'support' | 'sourcing' | 'financials' | 'design-test';
 
 interface NavigationContextType {
   activeNav: NavItem;

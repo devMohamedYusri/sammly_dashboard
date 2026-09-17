@@ -21,6 +21,7 @@ export default function TokenPricingPage() {
   const [newPkgTokens, setNewPkgTokens] = useState(0);
   const [newPkgPrice, setNewPkgPrice] = useState(0);
   const [newPkgBadge, setNewPkgBadge] = useState('');
+  const [newPkgInterval, setNewPkgInterval] = useState<'one_time' | 'monthly'>('one_time');
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -49,13 +50,22 @@ export default function TokenPricingPage() {
 
   const handlePackageChange = (
     id: string,
-    field: 'tokens' | 'price' | 'title' | 'titleAr' | 'badge',
+    field: 'tokens' | 'price' | 'title' | 'titleAr' | 'badge' | 'interval',
     value: string | number
   ) => {
     setPackages(
-      packages.map((pkg) =>
-        pkg.packageId === id ? { ...pkg, [field]: value } : pkg
-      )
+      packages.map((pkg) => {
+        if (pkg.packageId !== id) return pkg;
+        if (field === 'interval') {
+          const intervalVal = value as 'one_time' | 'monthly';
+          return {
+            ...pkg,
+            interval: intervalVal,
+            isSubscription: intervalVal === 'monthly',
+          };
+        }
+        return { ...pkg, [field]: value };
+      })
     );
   };
 
@@ -77,6 +87,7 @@ export default function TokenPricingPage() {
     }
     setSubmitting(true);
     try {
+      const isSub = newPkgInterval === 'monthly';
       await addPackage({
         packageId: newPkgId.trim().toLowerCase(),
         title: newPkgTitle.trim() || newPkgId.trim(),
@@ -84,6 +95,8 @@ export default function TokenPricingPage() {
         tokens: Number(newPkgTokens),
         price: Number(newPkgPrice),
         badge: newPkgBadge.trim() || null,
+        interval: newPkgInterval,
+        isSubscription: isSub,
       });
 
       setNewPkgId('');
@@ -92,6 +105,7 @@ export default function TokenPricingPage() {
       setNewPkgTokens(0);
       setNewPkgPrice(0);
       setNewPkgBadge('');
+      setNewPkgInterval('one_time');
 
       alert('Package added successfully');
       loadPackages();
@@ -117,10 +131,11 @@ export default function TokenPricingPage() {
         })
       );
 
-      // Update all paid packages ensuring title and titleAr are never empty
+      // Update all paid packages ensuring title, titleAr and interval are preserved
       packages.forEach((pkg) => {
         const titleFallback = pkg.title?.trim() || pkg.packageId;
         const titleArFallback = pkg.titleAr?.trim() || pkg.packageId;
+        const currentInterval = pkg.interval || (pkg.isSubscription ? 'monthly' : 'one_time');
         promises.push(
           updatePackage(pkg.packageId, {
             tokens: Number(pkg.tokens),
@@ -128,6 +143,8 @@ export default function TokenPricingPage() {
             newTitle: titleFallback,
             newTitleAr: titleArFallback,
             newBadge: pkg.badge?.trim() || null,
+            newInterval: currentInterval,
+            newIsSubscription: currentInterval === 'monthly',
           })
         );
       });
@@ -244,7 +261,7 @@ export default function TokenPricingPage() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
                   {/* English Title */}
                   <div className="space-y-1">
                     <label className="block text-xs font-semibold text-slate-500">TITLE (EN)</label>
@@ -272,6 +289,21 @@ export default function TokenPricingPage() {
                       placeholder="e.g. باقة المبتدئين"
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#31A895]"
                     />
+                  </div>
+
+                  {/* Interval Type */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-slate-500">INTERVAL</label>
+                    <select
+                      value={pkg.interval || (pkg.isSubscription ? 'monthly' : 'one_time')}
+                      onChange={(e) =>
+                        handlePackageChange(pkg.packageId, 'interval', e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#31A895]"
+                    >
+                      <option value="one_time">One-time Pack</option>
+                      <option value="monthly">Monthly Subscription</option>
+                    </select>
                   </div>
 
                   {/* Tokens */}
@@ -324,7 +356,7 @@ export default function TokenPricingPage() {
         {/* Add Package Section */}
         <div className="p-6 rounded-xl border border-dashed border-slate-300 bg-slate-50 space-y-4">
           <h3 className="text-base font-bold text-slate-900">Add New Token Package</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">PACKAGE ID</label>
               <input
@@ -357,6 +389,18 @@ export default function TokenPricingPage() {
                 onChange={(e) => setNewPkgTitleAr(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#31A895]"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">INTERVAL</label>
+              <select
+                value={newPkgInterval}
+                onChange={(e) => setNewPkgInterval(e.target.value as 'one_time' | 'monthly')}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#31A895]"
+              >
+                <option value="one_time">One-time</option>
+                <option value="monthly">Monthly</option>
+              </select>
             </div>
 
             <div>

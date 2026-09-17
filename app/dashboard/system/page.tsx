@@ -1,5 +1,5 @@
-import SystemSettingsPage from '@/components/pages/SystemSettingsPage';
+import { redirect } from 'next/navigation';
 
 export default function SystemPage() {
-  return <SystemSettingsPage />;
+  redirect('/dashboard/financials?tab=version-legal');
 }

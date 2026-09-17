@@ -14,6 +14,8 @@ import {
   getGovernanceOverview,
   toggleMilitaryHiatus,
   getTransactionsAnalytics,
+  getAppVersion,
+  getLegalDocument,
 } from '@/lib/api';
 import {
   FinancialOverviewData,
@@ -24,6 +26,7 @@ import {
   LedgerEntryType,
   LedgerCategory,
   LedgerCurrency,
+  AppVersionData,
 } from '@/types';
 
 export default function FinancialsPage() {
@@ -31,7 +34,12 @@ export default function FinancialsPage() {
   const isFounder = user?.role === 'founder';
 
   // State
-  const [activeTab, setActiveTab] = useState<'overview' | 'ledger' | 'governance' | 'purchases'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'ledger' | 'governance' | 'purchases' | 'version-legal'>('overview');
+  const [version, setVersion] = useState<AppVersionData | null>(null);
+  const [versionLoading, setVersionLoading] = useState(false);
+  const [versionError, setVersionError] = useState<string | null>(null);
+  const [legalDoc, setLegalDoc] = useState<{ title: string; content: string } | null>(null);
+  const [loadingLegal, setLoadingLegal] = useState(false);
   const [overview, setOverview] = useState<FinancialOverviewData | null>(null);
   const [entries, setEntries] = useState<FinancialLedgerEntry[]>([]);
   const [governance, setGovernance] = useState<GovernanceOverviewData | null>(null);
@@ -163,6 +171,50 @@ export default function FinancialsPage() {
       loadPurchases();
     }
   }, [activeTab, isFounder, loadPurchases]);
+
+  // App Version & Legal logic (Founder only)
+  const loadAppVersion = useCallback(async () => {
+    if (!isFounder) return;
+    setVersionLoading(true);
+    setVersionError(null);
+    try {
+      const v = await getAppVersion();
+      setVersion(v);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to load app version';
+      setVersionError(msg);
+    } finally {
+      setVersionLoading(false);
+    }
+  }, [isFounder]);
+
+  const openLegal = async (type: 'privacy-policy' | 'terms-of-service') => {
+    setLoadingLegal(true);
+    try {
+      const doc = await getLegalDocument(type);
+      setLegalDoc(doc);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to load document');
+    } finally {
+      setLoadingLegal(false);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'version-legal') {
+        setActiveTab('version-legal');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'version-legal' && isFounder && !version) {
+      loadAppVersion();
+    }
+  }, [activeTab, isFounder, version, loadAppVersion]);
+
 
   // Handle expense injection submit
   const handleExpenseSubmit = async (e: React.FormEvent) => {
@@ -602,6 +654,21 @@ export default function FinancialsPage() {
             <line x1="2" y1="10" x2="22" y2="10" />
           </svg>
           Purchases & Subscriptions
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold ml-1">FOUNDER</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('version-legal')}
+          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
+            activeTab === 'version-legal'
+              ? 'border-[#31A895] text-[#31A895]'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+            <line x1="12" y1="18" x2="12.01" y2="18"/>
+          </svg>
+          App Version &amp; Legal
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold ml-1">FOUNDER</span>
         </button>
       </div>
@@ -1571,6 +1638,127 @@ export default function FinancialsPage() {
       )}
 
       {/* ========================================================================= */}
+      {/* TAB 5: APP VERSION & LEGAL COMPLIANCE (FOUNDER-ONLY) */}
+      {/* ========================================================================= */}
+      {activeTab === 'version-legal' && (
+        <div className="space-y-8">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">App Versioning &amp; Legal Compliance</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Mobile client deployment constraints, forced update rules, and legal agreements
+            </p>
+          </div>
+
+          {versionError && (
+            <div className="p-4 text-sm text-[#FF5A6E] bg-red-50 border border-red-100 rounded-xl">
+              {versionError}
+            </div>
+          )}
+
+          {versionLoading && !version ? (
+            <div className="text-center py-12 text-slate-400 text-sm animate-pulse">
+              Loading mobile app versioning and legal metadata...
+            </div>
+          ) : version && (
+            <div className="space-y-6">
+              {/* StatCards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <StatCard
+                  title="LATEST VERSION"
+                  value={`v${version.latestVersion}`}
+                  iconSrc="/icon-version.svg"
+                />
+                <StatCard
+                  title="MINIMUM REQUIRED"
+                  value={`v${version.minRequiredVersion}`}
+                  iconSrc="/icon-check.svg"
+                />
+                <StatCard
+                  title="FORCE UPDATE STATUS"
+                  value={version.forceUpdate ? 'Enforced' : 'Optional'}
+                  iconSrc={version.forceUpdate ? '/icon-close.svg' : '/icon-check.svg'}
+                  valueColor={version.forceUpdate ? 'text-[#FF5A6E]' : 'text-[#1ECB7F]'}
+                />
+              </div>
+
+              {/* Release Notes & Download */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-3">
+                  <h3 className="text-sm font-semibold text-slate-900">Release Notes (v{version.latestVersion})</h3>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <p className="text-xs text-slate-500 uppercase font-bold mb-1">English</p>
+                    <p className="text-sm text-slate-700">{version.releaseNotes || 'None'}</p>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <p className="text-xs text-slate-500 uppercase font-bold mb-1">Arabic</p>
+                    <p className="text-sm text-slate-700" dir="rtl">{version.releaseNotesAr || 'لا يوجد'}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-3 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900">APK Distribution Target</h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Target download destination served to clients needing mandatory or optional updates.
+                    </p>
+                    <div className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-100 font-mono text-xs text-slate-600 break-all">
+                      {version.downloadUrl}
+                    </div>
+                  </div>
+                  <a
+                    href={version.downloadUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#31A895] text-white text-xs font-semibold rounded-lg hover:bg-[#289076] transition-colors"
+                  >
+                    Open Download Link ↗
+                  </a>
+                </div>
+              </div>
+
+              {/* Legal Documents */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-slate-900">Legal Compliance Documents</h3>
+                  <span className="text-xs text-slate-400">Source: /api/legal</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-slate-900 text-sm">Privacy Policy</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">Mandatory for App Store &amp; Google Play Store</p>
+                    </div>
+                    <button
+                      onClick={() => openLegal('privacy-policy')}
+                      disabled={loadingLegal}
+                      className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
+                    >
+                      Preview Document
+                    </button>
+                  </div>
+
+                  <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-slate-900 text-sm">Terms of Service</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">User agreement and acceptable use policy</p>
+                    </div>
+                    <button
+                      onClick={() => openLegal('terms-of-service')}
+                      disabled={loadingLegal}
+                      className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
+                    >
+                      Preview Document
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* MODAL 1: INJECT FOUNDER EXPENSE */}
       {/* ========================================================================= */}
       {showExpenseModal && (
@@ -2141,6 +2329,33 @@ export default function FinancialsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Legal Preview Modal */}
+      {legalDoc && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-lg font-bold text-slate-900">{legalDoc.title}</h3>
+              <button
+                onClick={() => setLegalDoc(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 whitespace-pre-wrap max-h-96 overflow-y-auto font-mono leading-relaxed">
+              {legalDoc.content}
+            </div>
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setLegalDoc(null)}
+                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
