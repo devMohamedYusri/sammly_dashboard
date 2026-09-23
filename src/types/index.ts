@@ -236,6 +236,108 @@ export interface SourcingLogsResponse {
   };
 }
 
+// Sourcing Vector Catalog Products
+export interface CatalogProduct {
+  id: string;
+  title: string | null;
+  price_egp: number | null;
+  original_price_egp?: number | null;
+  category: string | null;
+  store_name: string | null;
+  product_url: string | null;
+  image_url: string | null;
+  in_stock: boolean | null;
+  updated_at?: string | null;
+  missingAttributes: ('image' | 'link' | 'title' | 'price' | 'category' | 'store')[];
+  hasMissing: boolean;
+}
+
+export interface CatalogProductsResponse {
+  status: string;
+  data: {
+    products: CatalogProduct[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      nextOffset?: string | null;
+    };
+    collectionInfo?: {
+      name: string;
+      totalPoints: number;
+      vectorSize: number;
+      distance: string;
+    };
+    stats?: {
+      total: number;
+      missingImages: number;
+      missingUrls: number;
+      missingTitles: number;
+      missingPrices: number;
+      outOfStock: number;
+    };
+  };
+}
+
+export interface GetCatalogProductsParams {
+  page?: number;
+  limit?: number;
+  offset?: string | null;
+  category?: string;
+  storeName?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+  missing?: string;
+  search?: string;
+}
+
+export interface AuditLogEntry {
+  time: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+}
+
+export interface LinkAuditStatus {
+  isRunning: boolean;
+  jobId: string | null;
+  scope: 'page' | 'batch' | 'all' | 'idle';
+  speedMode?: 'normal' | 'fast' | 'turbo';
+  auditMode?: 'stale' | 'deep';
+  throughputPerSec?: number;
+  step?: 'idle' | 'initializing' | 'fetching_points' | 'verifying_links' | 'purging_points' | 'completed' | 'cancelled' | 'error';
+  totalChecked: number;
+  invalidCount: number;
+  removedCount: number;
+  validRemaining: number;
+  currentUrl?: string;
+  progressPercent: number;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  durationMs?: number;
+  durationText?: string;
+  recentLogs?: AuditLogEntry[];
+  summaryMessage?: string | null;
+  error?: string | null;
+  cancelRequested?: boolean;
+}
+
+export interface LinkAuditResponse {
+  status: string;
+  message?: string;
+  data: LinkAuditStatus;
+}
+
+export interface TriggerLinkAuditParams {
+  scope: 'page' | 'batch' | 'all';
+  limit?: number;
+  speedMode?: 'normal' | 'fast' | 'turbo';
+  auditMode?: 'stale' | 'deep';
+  items?: Array<{ id: string; product_url: string }>;
+}
+
+
 // Feature Flags
 export interface FeatureFlags {
   customBuild: {

@@ -32,9 +32,17 @@ import {
   LedgerCurrency,
   ApiPurchasesAnalyticsResponse,
   PurchasesAnalyticsData,
+  CatalogProductsResponse,
+  GetCatalogProductsParams,
+  LinkAuditResponse,
+  LinkAuditStatus,
+  TriggerLinkAuditParams,
 } from '@/types';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sammly-backend-p3z7.onrender.com';
+const PRIMARY_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const FALLBACK_BASE_URL = PRIMARY_BASE_URL.includes('localhost')
+  ? 'https://sammly-backend-p3z7.onrender.com'
+  : 'http://localhost:4000';
 
 export class ApiError extends Error {
   status: number;
@@ -64,8 +72,8 @@ export const clearToken = (): void => {
   }
 };
 
-async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const url = `${BASE_URL}${path}`;
+async function performFetch(baseUrl: string, path: string, options: RequestInit): Promise<Response> {
+  const url = `${baseUrl}${path}`;
   const token = getToken();
 
   const headers = new Headers(options.headers || {});
@@ -76,10 +84,30 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(url, {
+  return fetch(url, {
     ...options,
     headers,
   });
+}
+
+async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  let response: Response;
+
+  try {
+    response = await performFetch(PRIMARY_BASE_URL, path, options);
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.warn(`[apiFetch] Primary backend (${PRIMARY_BASE_URL}) unreachable (${errorMsg}), trying fallback (${FALLBACK_BASE_URL})...`);
+    try {
+      response = await performFetch(FALLBACK_BASE_URL, path, options);
+    } catch (fallbackErr: unknown) {
+      const fMsg = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
+      throw new ApiError(
+        `Unable to reach backend API server. Tried both ${PRIMARY_BASE_URL} and ${FALLBACK_BASE_URL}. (${fMsg})`,
+        503
+      );
+    }
+  }
 
   let data;
   try {
@@ -302,6 +330,90 @@ export async function getDetailedSourcingLogs(params: GetSourcingLogsParams = {}
   const queryString = query.toString() ? `?${query.toString()}` : '';
   const res = await apiFetch<SourcingLogsResponse>(`/api/admin/sourcing/logs${queryString}`);
   return res.data;
+}
+
+export async function getSourcingCatalogProducts(params: GetCatalogProductsParams = {}): Promise<CatalogProductsResponse['data']> {
+  const query = new URLSearchParams();
+  if (params.page !== undefined) query.append('page', String(params.page));
+  if (params.limit !== undefined) query.append('limit', String(params.limit));
+  if (params.offset) query.append('offset', params.offset);
+  if (params.category && params.category !== 'all') query.append('category', params.category);
+  if (params.storeName && params.storeName !== 'all') query.append('storeName', params.storeName);
+  if (params.minPrice !== undefined) query.append('minPrice', String(params.minPrice));
+  if (params.maxPrice !== undefined) query.append('maxPrice', String(params.maxPrice));
+  if (params.inStock !== undefined) query.append('inStock', String(params.inStock));
+  if (params.missing && params.missing !== 'all') query.append('missing', params.missing);
+  if (params.search && params.search.trim()) query.append('search', params.search.trim());
+
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  const token = getToken();
+
+  // Call Next.js local API proxy (which directly queries Qdrant Cloud)
+  const res = await fetch(`/api/sourcing/products${queryString}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  const json: CatalogProductsResponse = await res.json();
+  if (!res.ok || json.status === 'error') {
+    throw new ApiError((json as any)?.message || 'Failed to load catalog products', res.status);
+  }
+
+  return json.data;
+}
+
+// Dead Link Auditing & Vector DB Purge
+export async function triggerLinkAudit(params: TriggerLinkAuditParams): Promise<LinkAuditStatus> {
+  const token = getToken();
+  const res = await fetch('/api/sourcing/audit-links', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(params),
+  });
+
+  const json: LinkAuditResponse = await res.json();
+  if (!res.ok || json.status === 'error') {
+    throw new ApiError(json.message || 'Failed to trigger link audit', res.status);
+  }
+  return json.data;
+}
+
+export async function getLinkAuditStatus(): Promise<LinkAuditStatus> {
+  const token = getToken();
+  const res = await fetch('/api/sourcing/audit-links', {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const json: LinkAuditResponse = await res.json();
+  if (!res.ok || json.status === 'error') {
+    throw new ApiError(json.message || 'Failed to get audit status', res.status);
+  }
+  return json.data;
+}
+
+export async function stopLinkAudit(): Promise<LinkAuditStatus> {
+  const token = getToken();
+  const res = await fetch('/api/sourcing/audit-links', {
+    method: 'DELETE',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  }).catch(() => null);
+
+  if (res && res.ok) {
+    const json: LinkAuditResponse = await res.json();
+    return json.data;
+  }
+  return {
+    isRunning: false,
+    jobId: null,
+    scope: 'idle',
+    totalChecked: 0,
+    invalidCount: 0,
+    removedCount: 0,
+    validRemaining: 0,
+    progressPercent: 0,
+    summaryMessage: 'Stopped',
+  };
 }
 
 // 6) Feature Flags & Mobile Config

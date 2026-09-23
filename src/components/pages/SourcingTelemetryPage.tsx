@@ -7,6 +7,7 @@ import {
   getApiTelemetryOverview,
   getSourcingQualityMetrics,
   getDetailedSourcingLogs,
+  getSourcingCatalogProducts,
 } from '@/lib/api';
 import {
   ApiTelemetryOverview,
@@ -14,11 +15,13 @@ import {
   SourcingSearchLog,
   SearchResultItem,
 } from '@/types';
+import CatalogProductsTab from '@/components/sourcing/CatalogProductsTab';
 
-type ActiveTab = 'telemetry' | 'analytics' | 'logs';
+type ActiveTab = 'telemetry' | 'analytics' | 'logs' | 'catalog';
 
 export default function SourcingTelemetryPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('telemetry');
+  const [catalogCount, setCatalogCount] = useState<number | null>(null);
 
   // Tab 1: API Telemetry State
   const [telemetry, setTelemetry] = useState<ApiTelemetryOverview | null>(null);
@@ -96,6 +99,30 @@ export default function SourcingTelemetryPage() {
     } finally {
       setLoadingLogs(false);
     }
+  };
+
+  // Load Dynamic Catalog Count
+  const fetchCatalogCount = async () => {
+    try {
+      const data = await getSourcingCatalogProducts({ limit: 1 });
+      if (data?.pagination?.total !== undefined) {
+        setCatalogCount(data.pagination.total);
+      }
+    } catch (err) {
+      console.error('Failed to fetch dynamic catalog count:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCatalogCount();
+  }, []);
+
+  const formatCatalogBadge = (count: number | null): string => {
+    if (count === null) return '...';
+    if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}k`;
+    }
+    return count.toLocaleString();
   };
 
   // Trigger loading based on active tab
@@ -180,6 +207,20 @@ export default function SourcingTelemetryPage() {
             }`}
           >
             Search Audit Logs
+          </button>
+          <button
+            onClick={() => setActiveTab('catalog')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+              activeTab === 'catalog'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+            title={catalogCount !== null ? `${catalogCount.toLocaleString()} products currently in vector catalog` : undefined}
+          >
+            <span>Product Catalog</span>
+            <span className="px-1.5 py-0.2 bg-[#E8F5F3] text-[#1F6857] rounded-full text-[10px] font-bold">
+              {formatCatalogBadge(catalogCount)}
+            </span>
           </button>
         </div>
       </div>
@@ -689,6 +730,14 @@ export default function SourcingTelemetryPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* TAB 4: Product Catalog & Vector Database Audit */}
+      {activeTab === 'catalog' && (
+        <CatalogProductsTab
+          onTotalChange={setCatalogCount}
+          initialTotal={catalogCount ?? undefined}
+        />
       )}
 
       {/* Drilldown Modal */}
