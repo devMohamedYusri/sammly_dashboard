@@ -507,10 +507,13 @@ export interface TransactionUserInfo {
 export interface TransactionItem {
   id: string;
   paymentId: string;
+  invoiceKey?: string | null;
   amount: number;
   currency: string;
   credits: number;
   paymentStatus: 'completed' | 'pending' | 'failed' | string;
+  detailedStatus?: 'completed' | 'pending' | 'failed' | 'abandoned' | 'awaiting_payment' | string;
+  statusReason?: string | null;
   paymentProvider: string;
   packageId: string;
   packageInfo?: TransactionPackageInfo | null;

@@ -519,6 +519,26 @@ export async function getTransactionsAnalytics(params: GetTransactionsParams = {
   return res.data;
 }
 
+export async function syncPendingTransactions(): Promise<{
+  totalChecked: number;
+  completedCount: number;
+  failedCount: number;
+  abandonedCount: number;
+  stillPendingCount: number;
+}> {
+  const res = await apiFetch<{ status: string; data: any }>('/api/admin/financials/transactions/sync-pending', {
+    method: 'POST'
+  });
+  return res.data;
+}
+
+export async function syncSingleTransaction(id: string): Promise<any> {
+  const res = await apiFetch<{ status: string; data: any }>(`/api/admin/financials/transactions/${id}/sync`, {
+    method: 'POST'
+  });
+  return res.data;
+}
+
 // 9) Founder Test Account Credits
 export interface FounderCreditsData {
   userId: string;

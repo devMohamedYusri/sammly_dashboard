@@ -80,6 +80,9 @@ function generateCurl(baseUrl: string, method: string, endpoint: string, body: o
 }
 
 function formatApiError(message: string | undefined, defaultFallback: string, activeUrl: string) {
+  if (message?.includes('Failed to fetch') || message?.includes('Network request failed') || message?.includes('NetworkError')) {
+    return `Backend connection error: Could not reach ${activeUrl}. Please ensure your local backend is running on port 4000, or switch to Production (Render) in ⚙️ Settings above.`;
+  }
   if (message === 'Invalid token' || message?.toLowerCase().includes('invalid token')) {
     return `Invalid Token: The active token is not accepted by ${activeUrl}. If you recently switched between Local and Render in Settings, please log in through ${activeUrl} or paste a Bearer token issued by that backend in ⚙️ Settings.`;
   }
@@ -339,7 +342,11 @@ function Spinner({ label }: { label: string }) {
 
 export default function DesignTestPage() {
   const [activeTab, setActiveTab] = useState<Tab>('scratch');
-  const [baseUrl, setBaseUrl] = useState('http://localhost:4000');
+  const [baseUrl, setBaseUrl] = useState(
+    typeof window !== 'undefined' && localStorage.getItem('sammly_test_base_url')
+      ? localStorage.getItem('sammly_test_base_url')!
+      : 'https://sammly-backend-p3z7.onrender.com'
+  );
   const [customToken, setCustomToken] = useState('');
   const [resolution, setResolution] = useState<ResolutionTier>('512');
   const [showSettings, setShowSettings] = useState(false);
@@ -347,9 +354,31 @@ export default function DesignTestPage() {
   const { user } = useAuth();
   const isFounder = user?.role === 'founder';
 
+  const updateBaseUrl = (newUrl: string) => {
+    setBaseUrl(newUrl);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sammly_test_base_url', newUrl);
+    }
+  };
+
   const getAuthToken = useCallback(() => {
     return customToken || (typeof window !== 'undefined' ? localStorage.getItem('founder_test_token') : null) || getToken() || '';
   }, [customToken]);
+
+  const apiFetch = async (endpoint: string, options: RequestInit) => {
+    let activeUrl = baseUrl;
+    try {
+      return await fetch(`${activeUrl}${endpoint}`, options);
+    } catch (err) {
+      if (activeUrl.includes('localhost')) {
+        console.warn(`[DesignTestPage] ${activeUrl} unreachable, falling back to Render production...`);
+        activeUrl = 'https://sammly-backend-p3z7.onrender.com';
+        updateBaseUrl(activeUrl);
+        return await fetch(`${activeUrl}${endpoint}`, options);
+      }
+      throw err;
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -390,7 +419,7 @@ export default function DesignTestPage() {
     try {
       setAutoConnectingToken(true);
       setTokenStatusMessage(null);
-      const res = await fetch(`${baseUrl}/api/admin/founder/test-token`, {
+      const res = await apiFetch(`/api/admin/founder/test-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user?.email || 'mohamedyousry@founder.sammly' }),
@@ -525,7 +554,7 @@ export default function DesignTestPage() {
 
   const uploadToCloudinary = async (dataUrl: string): Promise<string | null> => {
     try {
-      const res = await fetch(`${baseUrl}/api/designs/upload`, {
+      const res = await apiFetch(`/api/designs/upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -571,7 +600,7 @@ export default function DesignTestPage() {
     setRestyleCurl(generateCurl(baseUrl, 'POST', '/api/designs/restyle', payload, getAuthToken()));
     const t0 = Date.now();
     try {
-      const res = await fetch(`${baseUrl}/api/designs/restyle`, {
+      const res = await apiFetch(`/api/designs/restyle`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
         body: JSON.stringify(payload),
@@ -618,7 +647,7 @@ export default function DesignTestPage() {
     setScratchCurl(generateCurl(baseUrl, 'POST', '/api/designs/generate', payload, getAuthToken()));
     const t0 = Date.now();
     try {
-      const res = await fetch(`${baseUrl}/api/designs/generate`, {
+      const res = await apiFetch(`/api/designs/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
         body: JSON.stringify(payload),
@@ -679,7 +708,7 @@ export default function DesignTestPage() {
     setHomeCurl(generateCurl(baseUrl, 'POST', '/api/designs/full-home', payload, getAuthToken()));
     const t0 = Date.now();
     try {
-      const res = await fetch(`${baseUrl}/api/designs/full-home`, {
+      const res = await apiFetch(`/api/designs/full-home`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
         body: JSON.stringify(payload),
@@ -739,7 +768,7 @@ export default function DesignTestPage() {
     setMaskCurl(generateCurl(baseUrl, 'POST', '/api/designs/mask', payload, getAuthToken()));
     const t0 = Date.now();
     try {
-      const res = await fetch(`${baseUrl}/api/designs/mask`, {
+      const res = await apiFetch('/api/designs/mask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
         body: JSON.stringify(payload),
@@ -788,7 +817,7 @@ export default function DesignTestPage() {
     setSourcingCurl(generateCurl(baseUrl, 'POST', '/api/sourcing/search', payload, getAuthToken()));
     const t0 = Date.now();
     try {
-      const res = await fetch(`${baseUrl}/api/sourcing/search`, {
+      const res = await apiFetch('/api/sourcing/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
         body: JSON.stringify(payload),
@@ -836,7 +865,7 @@ export default function DesignTestPage() {
     setMultiCurl(generateCurl(baseUrl, 'POST', '/api/sourcing/search-multi', payload, getAuthToken()));
     const t0 = Date.now();
     try {
-      const res = await fetch(`${baseUrl}/api/sourcing/search-multi`, {
+      const res = await apiFetch('/api/sourcing/search-multi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
         body: JSON.stringify(payload),
@@ -1030,19 +1059,20 @@ export default function DesignTestPage() {
               <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">Backend URL</label>
               <div className="flex gap-2">
                 <select
+                  value={baseUrl.includes('localhost') ? 'local' : 'prod'}
                   onChange={(e) => {
-                    if (e.target.value === 'local') setBaseUrl('http://localhost:4000');
-                    else if (e.target.value === 'prod') setBaseUrl('https://sammly-backend-p3z7.onrender.com');
+                    if (e.target.value === 'local') updateBaseUrl('http://localhost:4000');
+                    else if (e.target.value === 'prod') updateBaseUrl('https://sammly-backend-p3z7.onrender.com');
                   }}
                   className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#31A895]/40"
                 >
-                  <option value="local">Local (localhost:4000)</option>
                   <option value="prod">Production (Render)</option>
+                  <option value="local">Local (localhost:4000)</option>
                 </select>
                 <input
                   type="text"
                   value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
+                  onChange={(e) => updateBaseUrl(e.target.value)}
                   className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-[#31A895]/40"
                 />
               </div>

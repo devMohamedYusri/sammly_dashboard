@@ -14,6 +14,7 @@ import {
   getGovernanceOverview,
   toggleMilitaryHiatus,
   getTransactionsAnalytics,
+  syncPendingTransactions,
   getAppVersion,
   getLegalDocument,
 } from '@/lib/api';
@@ -54,6 +55,8 @@ export default function FinancialsPage() {
   const [txStatus, setTxStatus] = useState<string>('ALL');
   const [txPackageId, setTxPackageId] = useState<string>('ALL');
   const [txSearch, setTxSearch] = useState<string>('');
+  const [syncingFawaterk, setSyncingFawaterk] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
 
   // Ledger Filter & Pagination State
   const [page, setPage] = useState(1);
@@ -161,6 +164,24 @@ export default function FinancialsPage() {
       setPurchasesLoading(false);
     }
   }, [isFounder, txPage, txStatus, txPackageId, txSearch]);
+
+  const handleSyncFawaterk = async () => {
+    try {
+      setSyncingFawaterk(true);
+      setSyncResult(null);
+      const res = await syncPendingTransactions();
+      setSyncResult(
+        `Sync completed: ${res.completedCount} marked completed, ${res.failedCount} marked failed, ${res.abandonedCount} marked abandoned, ${res.stillPendingCount} still pending.`
+      );
+      await loadPurchases();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to sync with Fawaterk';
+      setSyncResult(`Sync failed: ${msg}`);
+    } finally {
+      setSyncingFawaterk(false);
+      setTimeout(() => setSyncResult(null), 8000);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -1514,8 +1535,28 @@ export default function FinancialsPage() {
                             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
                           </svg>
                         </button>
+
+                        <button
+                          onClick={handleSyncFawaterk}
+                          disabled={syncingFawaterk}
+                          title="Sync pending transactions with Fawaterk"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#31A895]/30 bg-[#31A895]/10 text-[#1F6857] hover:bg-[#31A895]/20 text-xs font-medium transition-colors disabled:opacity-50"
+                        >
+                          <svg className={syncingFawaterk ? 'animate-spin' : ''} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="23 4 23 10 17 10" />
+                            <polyline points="1 20 1 14 7 14" />
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                          </svg>
+                          <span>{syncingFawaterk ? 'Syncing...' : 'Sync Fawaterk'}</span>
+                        </button>
                       </div>
                     </div>
+
+                    {syncResult && (
+                      <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium">
+                        {syncResult}
+                      </div>
+                    )}
 
                     {/* Table */}
                     <div className="overflow-x-auto">
@@ -1539,7 +1580,20 @@ export default function FinancialsPage() {
                               </td>
                             </tr>
                           ) : (
-                            purchasesData.transactions.map((tx) => (
+                            purchasesData.transactions.map((tx) => {
+                              const ageMinutes = (Date.now() - new Date(tx.createdAt).getTime()) / (1000 * 60);
+                              const isAbandoned = tx.detailedStatus === 'abandoned' || (tx.paymentStatus === 'pending' && ageMinutes > 30 && (!tx.failureReason || tx.failureReason.toLowerCase().includes('abandoned')));
+                              const displayReason = tx.statusReason || tx.failureReason || (
+                                tx.paymentStatus === 'completed'
+                                  ? 'Payment captured and credits granted successfully'
+                                  : isAbandoned
+                                  ? 'Checkout opened but closed without paying (Abandoned / Unpaid)'
+                                  : tx.paymentStatus === 'pending'
+                                  ? 'Checkout initiated - awaiting customer payment'
+                                  : 'Payment failed or declined by gateway'
+                              );
+
+                              return (
                               <tr key={tx.id} className="hover:bg-slate-50/80 transition-colors">
                                 <td className="py-3 px-4 font-mono text-slate-500 whitespace-nowrap">
                                   {new Date(tx.createdAt).toLocaleDateString()}
@@ -1583,23 +1637,38 @@ export default function FinancialsPage() {
                                 </td>
 
                                 <td className="py-3 px-4">
-                                  {tx.paymentStatus === 'completed' ? (
+                                  {isAbandoned ? (
+                                    <Badge variant="default">ABANDONED</Badge>
+                                  ) : tx.paymentStatus === 'completed' ? (
                                     <Badge variant="success">COMPLETED</Badge>
                                   ) : tx.paymentStatus === 'pending' ? (
                                     <Badge variant="warning">PENDING</Badge>
                                   ) : (
                                     <Badge variant="danger">FAILED</Badge>
                                   )}
+                                  {displayReason && (
+                                    <div className="text-[10px] text-slate-500 mt-1 max-w-[200px] leading-tight" title={displayReason}>
+                                      {displayReason}
+                                    </div>
+                                  )}
                                 </td>
 
-                                <td className="py-3 px-4 font-mono text-[11px] text-slate-500 max-w-[140px] truncate" title={tx.paymentId}>
-                                  {tx.paymentId || 'N/A'}
-                                  <div className="text-[10px] uppercase text-slate-400">
+                                <td className="py-3 px-4 font-mono text-[11px] text-slate-500 max-w-[160px] truncate" title={tx.invoiceKey || tx.paymentId}>
+                                  <div className="font-semibold text-slate-800 truncate">
+                                    {tx.invoiceKey || tx.paymentId || 'N/A'}
+                                  </div>
+                                  {tx.invoiceKey && tx.paymentId && tx.invoiceKey !== tx.paymentId && (
+                                    <div className="text-[10px] text-slate-400 truncate" title={`Invoice ID: ${tx.paymentId}`}>
+                                      ID: {tx.paymentId}
+                                    </div>
+                                  )}
+                                  <div className="text-[10px] uppercase text-slate-400 mt-0.5">
                                     {tx.paymentProvider}
                                   </div>
                                 </td>
                               </tr>
-                            ))
+                              );
+                            })
                           )}
                         </tbody>
                       </table>
