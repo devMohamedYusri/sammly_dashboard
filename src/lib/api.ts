@@ -319,6 +319,7 @@ export async function getDetailedApiTelemetryLogs(
   const query = new URLSearchParams();
   if (params.hours !== undefined) query.append('hours', String(params.hours));
   if (params.feature && params.feature !== 'all') query.append('feature', params.feature);
+  if (params.audience && params.audience !== 'all') query.append('audience', params.audience);
   if (params.route && params.route.trim()) query.append('route', params.route.trim());
   if (params.search && params.search.trim()) query.append('search', params.search.trim());
   if (params.statusCode && params.statusCode !== 'all') query.append('statusCode', params.statusCode);

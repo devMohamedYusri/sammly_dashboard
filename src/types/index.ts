@@ -194,6 +194,7 @@ export interface DetailedApiTelemetryData {
   timeframe: string;
   hours: number;
   feature: string;
+  audience?: string;
   logs: ApiTelemetryLogItem[];
   pagination: {
     page: number;
@@ -209,7 +210,22 @@ export interface DetailedApiTelemetryData {
     clientErrorCount: number;
     serverErrorCount: number;
     errorRatePercent: number;
-    topUsers: Array<{
+    customerCount: number;
+    teamCount: number;
+    guestCount: number;
+    topCustomers?: Array<{
+      _id: string;
+      count: number;
+      avgLatencyMs: number;
+      user: ApiTelemetryLogUser;
+    }>;
+    topTeam?: Array<{
+      _id: string;
+      count: number;
+      avgLatencyMs: number;
+      user: ApiTelemetryLogUser;
+    }>;
+    topUsers?: Array<{
       _id: string;
       count: number;
       avgLatencyMs: number;
@@ -230,7 +246,24 @@ export interface DetailedApiTelemetryResponse {
 
 export interface GetDetailedApiTelemetryLogsParams {
   hours?: number;
-  feature?: 'all' | 'generation' | 'sourcing' | 'payment' | 'auth' | 'admin' | string;
+  feature?:
+    | 'all'
+    | 'all_ai'
+    | 'generation'
+    | 'room_generate'
+    | 'room_restyle'
+    | 'full_home'
+    | 'mask'
+    | 'upload'
+    | 'sourcing'
+    | 'sourcing_search'
+    | 'sourcing_multi'
+    | 'gallery'
+    | 'payment'
+    | 'auth'
+    | 'admin'
+    | string;
+  audience?: 'all' | 'customers' | 'team' | 'guest';
   route?: string;
   search?: string;
   statusCode?: string;

@@ -40,7 +40,10 @@ export default function SourcingTelemetryPage() {
   const [apiLogsTotalPages, setApiLogsTotalPages] = useState(1);
   const [apiLogsTotal, setApiLogsTotal] = useState(0);
   const [apiSummary, setApiSummary] = useState<DetailedApiTelemetryData['summary'] | null>(null);
-  const [apiSelectedFeature, setApiSelectedFeature] = useState<'all' | 'generation' | 'sourcing' | 'payment' | 'auth' | 'admin'>('all');
+  const [apiAudienceFilter, setApiAudienceFilter] = useState<'customers' | 'team' | 'all' | 'guest'>('customers');
+  const [apiLeaderboardTab, setApiLeaderboardTab] = useState<'customers' | 'team'>('customers');
+  const [apiSelectedFeature, setApiSelectedFeature] = useState<string>('all');
+  const [apiSubFeature, setApiSubFeature] = useState<string>('all');
   const [apiSearchQuery, setApiSearchQuery] = useState('');
   const [apiStatusCodeFilter, setApiStatusCodeFilter] = useState('all');
   const [apiRouteFilter, setApiRouteFilter] = useState('');
@@ -85,9 +88,11 @@ export default function SourcingTelemetryPage() {
     setApiLogsLoading(true);
     setApiLogsError(null);
     try {
+      const effectiveFeature = apiSubFeature !== 'all' ? apiSubFeature : (apiSelectedFeature !== 'all' ? apiSelectedFeature : undefined);
       const data = await getDetailedApiTelemetryLogs({
         hours: timeframeHours,
-        feature: apiSelectedFeature,
+        feature: effectiveFeature,
+        audience: apiAudienceFilter,
         search: apiSearchQuery.trim() || undefined,
         statusCode: apiStatusCodeFilter !== 'all' ? apiStatusCodeFilter : undefined,
         route: apiRouteFilter.trim() || undefined,
@@ -188,7 +193,9 @@ export default function SourcingTelemetryPage() {
   }, [
     activeTab,
     timeframeHours,
+    apiAudienceFilter,
     apiSelectedFeature,
+    apiSubFeature,
     apiStatusCodeFilter,
     apiRouteFilter,
     apiUserFilter,
@@ -213,11 +220,51 @@ export default function SourcingTelemetryPage() {
 
   const getFeatureBadge = (route: string) => {
     const r = (route || '').toLowerCase();
-    if (r.includes('generate') || r.includes('restyle') || r.includes('full-home') || r.includes('mask')) {
+    if (r.includes('designs/restyle')) {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
-          AI Generation
+          AI Restyle
+        </span>
+      );
+    }
+    if (r.includes('designs/full-home')) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          AI Full-Home
+        </span>
+      );
+    }
+    if (r.includes('designs/generate')) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          AI Generate
+        </span>
+      );
+    }
+    if (r.includes('designs/mask')) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" x2="8.12" y1="4" y2="15.88"/><line x1="14.47" x2="20" y1="14.48" y2="20"/><line x1="8.12" x2="12" y1="8.12" y2="12"/></svg>
+          AI Mask Inpaint
+        </span>
+      );
+    }
+    if (r.includes('designs/upload')) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+          Asset Upload
+        </span>
+      );
+    }
+    if (r.includes('sourcing/search-multi')) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-teal-50 text-teal-800 border border-teal-200">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          AI Multi-Sourcing
         </span>
       );
     }
@@ -229,7 +276,15 @@ export default function SourcingTelemetryPage() {
         </span>
       );
     }
-    if (r.includes('payment') || r.includes('credits') || r.includes('balance') || r.includes('financials')) {
+    if (r.includes('designs/shared') || r.includes('designs/history') || r.includes('static-designs') || r.includes('favorites')) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-pink-50 text-pink-700 border border-pink-200">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          Gallery & Feed
+        </span>
+      );
+    }
+    if (r.includes('payment') || r.includes('credits') || r.includes('balance') || r.includes('packages')) {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
@@ -441,48 +496,297 @@ export default function SourcingTelemetryPage() {
               </div>
             </div>
 
-            {/* 2. Feature / Target Quick Filter Strip */}
-            <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Target API & Feature</span>
-                <p className="text-xs text-slate-400 mt-0.5">Isolate generative AI designs, visual sourcing, billing, or user auth</p>
+            {/* 2. Target Audience & Role Separation Bar */}
+            <div className="pt-3 border-t border-slate-100 space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Target Audience & Role Separation
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F5F3] text-[#1F6857] border border-[#31A895]/20">
+                      Active Focus
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Separate real customer usage from internal founder and admin test traffic
+                  </p>
+                </div>
+                <div className="text-xs text-slate-400">
+                  Focus:{' '}
+                  <strong className="text-slate-700">
+                    {apiAudienceFilter === 'customers'
+                      ? 'Normal Customers Only'
+                      : apiAudienceFilter === 'team'
+                      ? 'Internal Team (Founders & Admins)'
+                      : apiAudienceFilter === 'guest'
+                      ? 'Guests & Public'
+                      : 'All Platform Traffic'}
+                  </strong>
+                </div>
               </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 pt-1">
+                {/* 1. Normal Customers */}
+                <button
+                  onClick={() => {
+                    setApiAudienceFilter('customers');
+                    setApiLeaderboardTab('customers');
+                    setApiLogsPage(1);
+                  }}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    apiAudienceFilter === 'customers'
+                      ? 'bg-white border-[#31A895] shadow-sm ring-2 ring-[#31A895]/30'
+                      : 'bg-slate-50/80 border-slate-200 hover:border-slate-300 hover:bg-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                          apiAudienceFilter === 'customers'
+                            ? 'bg-[#E8F5F3] text-[#31A895]'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                      </div>
+                      <span className="text-xs font-bold text-slate-900">Normal Customers</span>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        apiAudienceFilter === 'customers'
+                          ? 'bg-[#31A895] text-white'
+                          : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {apiSummary?.customerCount !== undefined ? apiSummary.customerCount.toLocaleString() : '...'} calls
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1.5 truncate">
+                    Authentic customer usage (no admin tests)
+                  </p>
+                </button>
+
+                {/* 2. Founders & Admins */}
+                <button
+                  onClick={() => {
+                    setApiAudienceFilter('team');
+                    setApiLeaderboardTab('team');
+                    setApiLogsPage(1);
+                  }}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    apiAudienceFilter === 'team'
+                      ? 'bg-white border-amber-500 shadow-sm ring-2 ring-amber-400/30'
+                      : 'bg-slate-50/80 border-slate-200 hover:border-slate-300 hover:bg-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                          apiAudienceFilter === 'team'
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><polygon points="12 8 13.5 11.5 17 11.5 14 13.8 15.2 17.5 12 15 8.8 17.5 10 13.8 7 11.5 10.5 11.5 12 8"/></svg>
+                      </div>
+                      <span className="text-xs font-bold text-slate-900">Founders & Admins</span>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        apiAudienceFilter === 'team'
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {apiSummary?.teamCount !== undefined ? apiSummary.teamCount.toLocaleString() : '...'} calls
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1.5 truncate">
+                    Internal team tests & dev benchmarks
+                  </p>
+                </button>
+
+                {/* 3. All Accounts & Traffic */}
+                <button
+                  onClick={() => {
+                    setApiAudienceFilter('all');
+                    setApiLogsPage(1);
+                  }}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    apiAudienceFilter === 'all'
+                      ? 'bg-white border-slate-900 shadow-sm ring-2 ring-slate-400/30'
+                      : 'bg-slate-50/80 border-slate-200 hover:border-slate-300 hover:bg-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                          apiAudienceFilter === 'all'
+                            ? 'bg-slate-900 text-white'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                      </div>
+                      <span className="text-xs font-bold text-slate-900">All Traffic</span>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        apiAudienceFilter === 'all'
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {apiSummary?.totalRequests !== undefined ? apiSummary.totalRequests.toLocaleString() : '...'} calls
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1.5 truncate">
+                    Full blended platform telemetry
+                  </p>
+                </button>
+
+                {/* 4. Guests & Public */}
+                <button
+                  onClick={() => {
+                    setApiAudienceFilter('guest');
+                    setApiLogsPage(1);
+                  }}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    apiAudienceFilter === 'guest'
+                      ? 'bg-white border-sky-600 shadow-sm ring-2 ring-sky-400/30'
+                      : 'bg-slate-50/80 border-slate-200 hover:border-slate-300 hover:bg-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                          apiAudienceFilter === 'guest'
+                            ? 'bg-sky-100 text-sky-700'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M4 21v-2a4 4 0 0 1 3-3.87"/><circle cx="12" cy="7" r="4"/></svg>
+                      </div>
+                      <span className="text-xs font-bold text-slate-900">Guests & Public</span>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        apiAudienceFilter === 'guest'
+                          ? 'bg-sky-600 text-white'
+                          : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {apiSummary?.guestCount !== undefined ? apiSummary.guestCount.toLocaleString() : '...'} calls
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1.5 truncate">
+                    Unauthenticated and public requests
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* 3. Granular Operations & Features Strip */}
+            <div className="pt-3 border-t border-slate-100 space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                    All App Operations & AI Features
+                  </span>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Follow all features across generative AI, vision sourcing, payments, auth, and admin
+                  </p>
+                </div>
+                {apiSubFeature !== 'all' && (
+                  <button
+                    onClick={() => {
+                      setApiSubFeature('all');
+                      setApiLogsPage(1);
+                    }}
+                    className="text-xs font-semibold text-[#31A895] hover:underline"
+                  >
+                    Reset to Category View ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Primary Category Pills */}
               <div className="flex flex-wrap items-center gap-1.5">
                 {[
-                  { id: 'all', label: 'All APIs' },
-                  { id: 'generation', label: 'AI Generation', highlight: true },
-                  { id: 'sourcing', label: 'AI Sourcing' },
-                  { id: 'payment', label: 'Payments & Credits' },
+                  { id: 'all', label: 'All Operations' },
+                  { id: 'all_ai', label: 'All Generative AI & Vision', highlight: true },
+                  { id: 'generation', label: 'Room Generations' },
+                  { id: 'sourcing', label: 'Visual Sourcing' },
+                  { id: 'gallery', label: 'Gallery & Feed' },
+                  { id: 'payment', label: 'Billing & Credits' },
                   { id: 'auth', label: 'Users & Auth' },
                   { id: 'admin', label: 'Admin & Ops' },
                 ].map((f) => (
                   <button
                     key={f.id}
                     onClick={() => {
-                      setApiSelectedFeature(f.id as any);
+                      setApiSelectedFeature(f.id);
+                      setApiSubFeature('all');
                       setApiLogsPage(1);
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 border ${
                       apiSelectedFeature === f.id
-                        ? f.id === 'generation'
+                        ? f.id === 'all_ai' || f.id === 'generation'
                           ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
                           : 'bg-[#31A895] text-white border-[#31A895] shadow-sm'
-                        : f.id === 'generation'
+                        : f.id === 'all_ai' || f.id === 'generation'
                         ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                     }`}
                   >
                     <span>{f.label}</span>
-                    {f.id === 'generation' && (
-                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                        apiSelectedFeature === 'generation' ? 'bg-purple-700 text-white' : 'bg-purple-200 text-purple-800'
-                      }`}>
-                        Target
-                      </span>
-                    )}
                   </button>
                 ))}
               </div>
+
+              {/* Secondary Granular Sub-Operation Pills for AI & Key Routes */}
+              {(apiSelectedFeature === 'all' ||
+                apiSelectedFeature === 'all_ai' ||
+                apiSelectedFeature === 'generation' ||
+                apiSelectedFeature === 'sourcing') && (
+                <div className="p-2.5 rounded-xl bg-purple-50/60 border border-purple-100 flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="text-[11px] font-bold text-purple-900 pr-1 flex items-center gap-1">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
+                    Specific AI Feature:
+                  </span>
+                  {[
+                    { id: 'all', label: 'All In Category' },
+                    { id: 'room_restyle', label: 'Restyle (/restyle)' },
+                    { id: 'full_home', label: 'Full Home (/full-home)' },
+                    { id: 'room_generate', label: 'Single Room (/generate)' },
+                    { id: 'mask', label: 'Mask Inpainting (/mask)' },
+                    { id: 'upload', label: 'Asset Upload (/upload)' },
+                    { id: 'sourcing_search', label: 'Sourcing Search (/sourcing/search)' },
+                    { id: 'sourcing_multi', label: 'Multi Sourcing (/search-multi)' },
+                    { id: 'gallery', label: 'Gallery & History' },
+                  ].map((sub) => (
+                    <button
+                      key={sub.id}
+                      onClick={() => {
+                        setApiSubFeature(sub.id);
+                        setApiLogsPage(1);
+                      }}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                        apiSubFeature === sub.id
+                          ? 'bg-purple-700 text-white shadow-xs font-bold'
+                          : 'bg-white text-purple-900 border border-purple-200 hover:bg-purple-100/70'
+                      }`}
+                    >
+                      {sub.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -490,7 +794,7 @@ export default function SourcingTelemetryPage() {
           {apiUserFilter && (
             <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50 border border-purple-200 text-xs">
               <div className="flex items-center gap-2 text-purple-900">
-                <span className="font-bold">Filtering logs for user:</span>
+                <span className="font-bold">Filtering logs for account:</span>
                 <span className="font-mono bg-white px-2 py-0.5 rounded border border-purple-200">{apiUserFilter.email}</span>
               </div>
               <button
@@ -505,27 +809,35 @@ export default function SourcingTelemetryPage() {
             </div>
           )}
 
-          {/* Summary KPI Ribbon */}
+          {/* Summary KPI Ribbon Tailored to Selected Audience */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
-              title={apiSelectedFeature === 'generation' ? "TOTAL GENERATION CALLS" : "TOTAL REQUESTS"}
+              title={
+                apiAudienceFilter === 'customers'
+                  ? 'CUSTOMER REQUESTS'
+                  : apiAudienceFilter === 'team'
+                  ? 'TEAM TEST REQUESTS'
+                  : apiAudienceFilter === 'guest'
+                  ? 'GUEST REQUESTS'
+                  : 'TOTAL REQUESTS'
+              }
               value={apiLogsTotal.toLocaleString()}
-              subtitle={`Recorded in last ${timeframeHours >= 24 ? `${timeframeHours / 24} days` : `${timeframeHours} hrs`}`}
+              subtitle={`Matching ${apiAudienceFilter === 'customers' ? 'normal customers' : apiAudienceFilter === 'team' ? 'founders/admins' : 'selected filters'} in last ${timeframeHours >= 24 ? `${timeframeHours / 24}d` : `${timeframeHours}h`}`}
               iconSrc="/icon-telemetry.svg"
-              valueColor={apiSelectedFeature === 'generation' ? "text-purple-600" : "text-slate-900"}
+              valueColor={apiAudienceFilter === 'customers' ? 'text-[#31A895]' : apiAudienceFilter === 'team' ? 'text-amber-600' : 'text-slate-900'}
             />
             <StatCard
               title="AVERAGE LATENCY"
               value={formatLatency(apiSummary?.avgLatencyMs || 0)}
               subtitle={
                 (apiSummary?.avgLatencyMs || 0) < 500
-                  ? "Fast execution (<500ms)"
+                  ? 'Fast execution (<500ms)'
                   : (apiSummary?.avgLatencyMs || 0) > 3000
-                  ? "Heavy model inference"
-                  : "Normal response pipeline"
+                  ? 'Heavy AI inference model'
+                  : 'Normal API execution'
               }
               iconSrc="/icon-check.svg"
-              valueColor={(apiSummary?.avgLatencyMs || 0) > 3000 ? "text-amber-600" : "text-[#1ECB7F]"}
+              valueColor={(apiSummary?.avgLatencyMs || 0) > 3000 ? 'text-amber-600' : 'text-[#1ECB7F]'}
             />
             <StatCard
               title="SUCCESS RATE"
@@ -535,107 +847,216 @@ export default function SourcingTelemetryPage() {
               valueColor="text-[#1ECB7F]"
             />
             <StatCard
-              title="ACTIVE CONSUMERS"
-              value={apiSummary?.topUsers?.length ? `${apiSummary.topUsers.length} users` : "0 users"}
-              subtitle={apiSelectedFeature === 'generation' ? "Generated AI interiors" : "Unique authenticated accounts"}
+              title={
+                apiAudienceFilter === 'customers'
+                  ? 'ACTIVE CUSTOMERS'
+                  : apiAudienceFilter === 'team'
+                  ? 'ACTIVE TEAM MEMBERS'
+                  : 'TOTAL CONSUMERS'
+              }
+              value={
+                apiAudienceFilter === 'customers'
+                  ? `${apiSummary?.topCustomers?.length || 0} customers`
+                  : apiAudienceFilter === 'team'
+                  ? `${apiSummary?.topTeam?.length || 0} operators`
+                  : `${(apiSummary?.topCustomers?.length || 0) + (apiSummary?.topTeam?.length || 0)} accounts`
+              }
+              subtitle={
+                apiAudienceFilter === 'customers'
+                  ? 'Unique customer accounts'
+                  : apiAudienceFilter === 'team'
+                  ? 'Founders and admins testing'
+                  : 'Identified user profiles'
+              }
               iconSrc="/icon-users.svg"
               valueColor="text-[#0E5FBF]"
             />
           </div>
 
-          {/* Leaderboard: Who used this feature? (Especially AI Generation) */}
-          {apiSummary?.topUsers && apiSummary.topUsers.length > 0 && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-sm">
-                    {apiSelectedFeature === 'generation' ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
-                    ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900">
-                      {apiSelectedFeature === 'generation'
-                        ? 'Top Users Who Used AI Generation'
-                        : `Top Account Consumers (${apiSelectedFeature === 'all' ? 'All Endpoints' : apiSelectedFeature})`}
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      Identifies which accounts made the highest number of calls and their speed
-                    </p>
-                  </div>
+          {/* Separated Leaderboards: Top Customers vs Founders & Admins */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#31A895] flex items-center justify-center font-bold text-sm">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </div>
-                <span className="text-xs font-semibold text-slate-400">
-                  {apiSummary.topUsers.length} accounts ranked
-                </span>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Account Usage Leaderboards</h3>
+                  <p className="text-xs text-slate-500">
+                    Separate real customer accounts from internal founder & admin test activity
+                  </p>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {apiSummary.topUsers.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className={`p-3.5 rounded-xl border transition-all ${
-                      apiUserFilter?.id === item.user?._id
-                        ? 'bg-purple-50 border-purple-300 ring-2 ring-purple-400'
-                        : 'bg-slate-50 border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs uppercase shrink-0">
-                          {item.user?.email ? item.user.email.charAt(0) : 'U'}
+              {/* Dual Tab Switcher */}
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button
+                  onClick={() => setApiLeaderboardTab('customers')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    apiLeaderboardTab === 'customers'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>Top Customers</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-[#E8F5F3] text-[#1F6857]">
+                    {apiSummary?.topCustomers?.length || 0}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setApiLeaderboardTab('team')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    apiLeaderboardTab === 'team'
+                      ? 'bg-white text-amber-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>Founders & Admins</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800">
+                    {apiSummary?.topTeam?.length || 0}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Leaderboard Cards Grid */}
+            {apiLeaderboardTab === 'customers' ? (
+              apiSummary?.topCustomers && apiSummary.topCustomers.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {apiSummary.topCustomers.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3.5 rounded-xl border transition-all ${
+                        apiUserFilter?.id === item.user?._id
+                          ? 'bg-[#E8F5F3] border-[#31A895] ring-2 ring-[#31A895]/30'
+                          : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                            {item.user?.email ? item.user.email.charAt(0) : 'C'}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-900 truncate" title={item.user?.email || 'Customer'}>
+                              {item.user?.email || 'Customer'}
+                            </p>
+                            <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
+                              Customer
+                            </span>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-900 truncate" title={item.user?.email || 'Guest'}>
-                            {item.user?.email || 'Anonymous / Guest'}
-                          </p>
-                          <span className={`inline-block px-1.5 py-0.2 rounded text-[10px] font-semibold ${
-                            item.user?.role === 'founder'
-                              ? 'bg-amber-100 text-amber-800'
-                              : item.user?.role === 'admin'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {item.user?.role || 'user'}
+                        <div className="text-right shrink-0">
+                          <span className="text-sm font-extrabold text-slate-900 block">
+                            {item.count} <span className="text-[10px] font-normal text-slate-500">calls</span>
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-500">
+                            ~{formatLatency(item.avgLatencyMs)}
                           </span>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <span className="text-sm font-extrabold text-slate-900 block">
-                          {item.count} <span className="text-[10px] font-normal text-slate-500">calls</span>
+
+                      <div className="mt-2.5 pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                        <span className="text-[11px] text-slate-500">
+                          Rank #{idx + 1} customer
                         </span>
-                        <span className="text-[10px] font-mono text-slate-500">
-                          ~{formatLatency(item.avgLatencyMs)}
-                        </span>
+                        {item.user?._id && (
+                          <button
+                            onClick={() => {
+                              if (apiUserFilter?.id === item.user._id) {
+                                setApiUserFilter(null);
+                              } else {
+                                setApiUserFilter({ id: item.user._id, email: item.user.email });
+                              }
+                              setApiLogsPage(1);
+                            }}
+                            className="text-[11px] font-semibold text-[#31A895] hover:underline"
+                          >
+                            {apiUserFilter?.id === item.user._id ? 'Clear Filter' : 'Filter User ➔'}
+                          </button>
+                        )}
                       </div>
                     </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl">
+                  No normal customer calls recorded for the selected timeframe and features.
+                </div>
+              )
+            ) : (
+              apiSummary?.topTeam && apiSummary.topTeam.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {apiSummary.topTeam.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3.5 rounded-xl border transition-all ${
+                        apiUserFilter?.id === item.user?._id
+                          ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-400'
+                          : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 ${
+                            item.user?.role === 'founder' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800'
+                          }`}>
+                            {item.user?.email ? item.user.email.charAt(0) : 'T'}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-900 truncate" title={item.user?.email || 'Team'}>
+                              {item.user?.email || 'Team'}
+                            </p>
+                            <span className={`inline-block px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                              item.user?.role === 'founder'
+                                ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                : 'bg-purple-100 text-purple-800 border border-purple-200'
+                            }`}>
+                              {item.user?.role === 'founder' ? 'Founder' : 'Admin'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-sm font-extrabold text-slate-900 block">
+                            {item.count} <span className="text-[10px] font-normal text-slate-500">tests</span>
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-500">
+                            ~{formatLatency(item.avgLatencyMs)}
+                          </span>
+                        </div>
+                      </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-slate-500">
-                        {apiSelectedFeature === 'generation' ? 'Generation calls' : 'API usage'}
-                      </span>
-                      {item.user?._id && (
-                        <button
-                          onClick={() => {
-                            if (apiUserFilter?.id === item.user._id) {
-                              setApiUserFilter(null);
-                            } else {
-                              setApiUserFilter({ id: item.user._id, email: item.user.email });
-                            }
-                            setApiLogsPage(1);
-                          }}
-                          className="text-[11px] font-semibold text-[#31A895] hover:underline"
-                        >
-                          {apiUserFilter?.id === item.user._id ? 'Clear' : 'Filter User ➔'}
-                        </button>
-                      )}
+                      <div className="mt-2.5 pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                        <span className="text-[11px] text-slate-500">
+                          Internal Operator #{idx + 1}
+                        </span>
+                        {item.user?._id && (
+                          <button
+                            onClick={() => {
+                              if (apiUserFilter?.id === item.user._id) {
+                                setApiUserFilter(null);
+                              } else {
+                                setApiUserFilter({ id: item.user._id, email: item.user.email });
+                              }
+                              setApiLogsPage(1);
+                            }}
+                            className="text-[11px] font-semibold text-amber-700 hover:underline"
+                          >
+                            {apiUserFilter?.id === item.user._id ? 'Clear Filter' : 'Filter User ➔'}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl">
+                  No founder or admin test calls recorded for the selected timeframe and features.
+                </div>
+              )
+            )}
+          </div>
 
           {/* Search, Status & Route Filter Bar */}
           <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
@@ -671,7 +1092,9 @@ export default function SourcingTelemetryPage() {
 
                 <button
                   onClick={() => {
+                    setApiAudienceFilter('customers');
                     setApiSelectedFeature('all');
+                    setApiSubFeature('all');
                     setApiSearchQuery('');
                     setApiStatusCodeFilter('all');
                     setApiRouteFilter('');
@@ -763,21 +1186,35 @@ export default function SourcingTelemetryPage() {
                         <td className="px-5 py-3.5">
                           {log.userId ? (
                             <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] uppercase shrink-0">
-                                {log.userId.email ? log.userId.email.charAt(0) : 'U'}
-                              </div>
-                              <div className="min-w-0 max-w-[180px]">
-                                <span className="font-semibold text-slate-900 truncate block text-xs" title={log.userId.email}>
-                                  {log.userId.email}
-                                </span>
-                                <span className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                              <div
+                                className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] uppercase shrink-0 ${
                                   log.userId.role === 'founder'
                                     ? 'bg-amber-100 text-amber-800'
                                     : log.userId.role === 'admin'
                                     ? 'bg-purple-100 text-purple-800'
                                     : 'bg-blue-100 text-blue-800'
-                                }`}>
-                                  {log.userId.role || 'user'}
+                                }`}
+                              >
+                                {log.userId.email ? log.userId.email.charAt(0) : 'U'}
+                              </div>
+                              <div className="min-w-0 max-w-[190px]">
+                                <span className="font-semibold text-slate-900 truncate block text-xs" title={log.userId.email}>
+                                  {log.userId.email}
+                                </span>
+                                <span
+                                  className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                                    log.userId.role === 'founder'
+                                      ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                      : log.userId.role === 'admin'
+                                      ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                      : 'bg-slate-100 text-slate-700 border border-slate-200'
+                                  }`}
+                                >
+                                  {log.userId.role === 'founder'
+                                    ? 'Founder'
+                                    : log.userId.role === 'admin'
+                                    ? 'Admin'
+                                    : 'Customer'}
                                 </span>
                               </div>
                             </div>
@@ -1456,6 +1893,41 @@ export default function SourcingTelemetryPage() {
               </button>
             </div>
 
+            {/* Audience Classification Banner */}
+            <div
+              className={`p-3 rounded-xl border flex items-center justify-between text-xs font-semibold ${
+                inspectApiLog.userId?.role === 'founder'
+                  ? 'bg-amber-50 text-amber-900 border-amber-200'
+                  : inspectApiLog.userId?.role === 'admin'
+                  ? 'bg-purple-50 text-purple-900 border-purple-200'
+                  : inspectApiLog.userId
+                  ? 'bg-[#E8F5F3] text-[#1F6857] border-[#31A895]/30'
+                  : 'bg-slate-50 text-slate-700 border-slate-200'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-current"></span>
+                <span>
+                  {inspectApiLog.userId?.role === 'founder'
+                    ? 'Internal Founder Diagnostic Call (Founder Testing / Dev)'
+                    : inspectApiLog.userId?.role === 'admin'
+                    ? 'Internal Admin Operational Call (Staff Maintenance)'
+                    : inspectApiLog.userId
+                    ? 'Live Customer Request (Authentic Customer Traffic)'
+                    : 'Unauthenticated Public / Guest Request'}
+                </span>
+              </div>
+              <span className="uppercase text-[10px] tracking-wider px-2 py-0.5 rounded bg-white/80 border border-current/20">
+                {inspectApiLog.userId?.role === 'founder'
+                  ? 'Founder'
+                  : inspectApiLog.userId?.role === 'admin'
+                  ? 'Admin'
+                  : inspectApiLog.userId
+                  ? 'Customer'
+                  : 'Guest'}
+              </span>
+            </div>
+
             {/* Quick Metrics */}
             <div className="grid grid-cols-3 gap-3">
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
@@ -1499,7 +1971,11 @@ export default function SourcingTelemetryPage() {
                       ? 'bg-purple-100 text-purple-800'
                       : 'bg-blue-100 text-blue-800'
                   }`}>
-                    {inspectApiLog.userId.role || 'user'}
+                    {inspectApiLog.userId.role === 'founder'
+                      ? 'Founder'
+                      : inspectApiLog.userId.role === 'admin'
+                      ? 'Admin'
+                      : 'Customer'}
                   </span>
                 ) : (
                   <span className="text-xs text-slate-400">Public / Unauthenticated</span>
