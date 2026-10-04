@@ -4,6 +4,37 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ApiUser } from '@/types';
 import { manageUserBalance } from '@/lib/api';
 
+// Official Sammly App Subscription Plans (Only Pro and Premium are subscribable)
+export const OFFICIAL_SUBSCRIPTION_PLANS = [
+  {
+    id: 'pro' as const,
+    title: 'Pro Plan',
+    titleAr: 'باقة المحترف',
+    monthlyCredits: 80,
+    pricePerMonth: 599,
+    badge: '10% OFF',
+    desc: '80 credits / month',
+    highlight: 'Standard Tier',
+  },
+  {
+    id: 'premium' as const,
+    title: 'Premium Plan',
+    titleAr: 'باقة بريميوم',
+    monthlyCredits: 210,
+    pricePerMonth: 1499,
+    badge: '14% OFF',
+    desc: '210 credits / month',
+    highlight: 'Power Users',
+  },
+] as const;
+
+export const DURATION_INTERVALS = [
+  { id: '1_month' as const, label: '1 Month', months: 1, days: '30 Days' },
+  { id: '3_months' as const, label: '3 Months', months: 3, days: '90 Days' },
+  { id: '6_months' as const, label: '6 Months', months: 6, days: '180 Days' },
+  { id: '1_year' as const, label: 'Full Year', months: 12, days: '365 Days' },
+] as const;
+
 interface UserBalanceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -26,14 +57,14 @@ export default function UserBalanceModal({
   const [selectedUserId, setSelectedUserId] = useState<string>(targetUser?._id || '');
   const [userSearch, setUserSearch] = useState<string>('');
 
-  // Credits Tab State
+  // Credits Tab State (Presets 30, 80, 210, Custom - Never Expire)
   const [creditAmount, setCreditAmount] = useState<number>(80);
   const [customCreditInput, setCustomCreditInput] = useState<string>('80');
 
-  // Subscription Tab State
-  const [selectedPlanId, setSelectedPlanId] = useState<string>('pro');
-  const [selectedInterval, setSelectedInterval] = useState<'1_month' | '3_months' | '6_months' | '1_year'>('1_year');
-  const [creditsQuota, setCreditsQuota] = useState<number>(1200);
+  // Subscription Tab State (Strictly Pro or Premium)
+  const [selectedPlanId, setSelectedPlanId] = useState<'pro' | 'premium'>('pro');
+  const [selectedInterval, setSelectedInterval] = useState<'1_month' | '3_months' | '6_months' | '1_year'>('1_month');
+  const [creditsQuota, setCreditsQuota] = useState<number>(80);
 
   // Status & Alerts
   const [submitting, setSubmitting] = useState(false);
@@ -55,23 +86,17 @@ export default function UserBalanceModal({
     return allUsers.find((u) => u._id === selectedUserId) || targetUser;
   }, [targetUser, allUsers, selectedUserId]);
 
-  // Adjust suggested subscription quota when duration changes
+  // Helper to calculate standard credits quota based on plan and duration
+  const getStandardQuota = (planId: 'pro' | 'premium', interval: '1_month' | '3_months' | '6_months' | '1_year') => {
+    const baseMonthly = planId === 'premium' ? 210 : 80;
+    const months = interval === '1_year' ? 12 : interval === '6_months' ? 6 : interval === '3_months' ? 3 : 1;
+    return baseMonthly * months;
+  };
+
+  // Adjust suggested subscription quota automatically when plan or duration changes
   useEffect(() => {
-    switch (selectedInterval) {
-      case '1_month':
-        setCreditsQuota(100);
-        break;
-      case '3_months':
-        setCreditsQuota(300);
-        break;
-      case '6_months':
-        setCreditsQuota(600);
-        break;
-      case '1_year':
-        setCreditsQuota(1200);
-        break;
-    }
-  }, [selectedInterval]);
+    setCreditsQuota(getStandardQuota(selectedPlanId, selectedInterval));
+  }, [selectedPlanId, selectedInterval]);
 
   if (!isOpen) return null;
 
@@ -112,18 +137,15 @@ export default function UserBalanceModal({
         });
         setSuccessMsg(res.message);
       } else if (action === 'assign_subscription') {
-        const planTitleMap = {
-          starter: 'Starter Plan',
-          pro: 'Pro Designer',
-          vip: 'VIP Studio',
-        };
-        const title = planTitleMap[selectedPlanId as keyof typeof planTitleMap] || 'Pro Tier';
+        const planObj = OFFICIAL_SUBSCRIPTION_PLANS.find((p) => p.id === selectedPlanId);
+        const intervalObj = DURATION_INTERVALS.find((d) => d.id === selectedInterval);
+        const title = `${planObj?.title || 'Pro Plan'} (${intervalObj?.label || '1 Month'})`;
 
         const res = await manageUserBalance({
           targetUserId: activeUser._id,
           actionType: 'assign_subscription',
           planId: selectedPlanId,
-          planTitle: `${title} (${selectedInterval.replace('_', ' ')})`,
+          planTitle: title,
           interval: selectedInterval,
           creditsQuota,
           rolloverEnabled: true,
@@ -370,75 +392,98 @@ export default function UserBalanceModal({
                 )}
               </div>
 
-              {/* Plan Tier Selection */}
+              {/* Plan Tier Selection: Strictly the 2 official app subscription plans */}
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1.5">Choose Plan Tier:</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'starter', label: 'Starter', badge: 'Casual' },
-                    { id: 'pro', label: 'Pro Designer', badge: 'Most Popular' },
-                    { id: 'vip', label: 'VIP Studio', badge: 'High Volume' },
-                  ].map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setSelectedPlanId(p.id)}
-                      className={`p-2.5 rounded-xl border text-center transition-all ${
-                        selectedPlanId === p.id
-                          ? 'border-[#31A895] bg-[#F0FAF8] text-[#31A895] font-bold ring-1 ring-[#31A895]'
-                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className="text-xs block font-bold">{p.label}</span>
-                      <span className="text-[9px] text-slate-400">{p.badge}</span>
-                    </button>
-                  ))}
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">
+                  Choose Subscription Plan (Pro or Premium):
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {OFFICIAL_SUBSCRIPTION_PLANS.map((p) => {
+                    const isSelected = selectedPlanId === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setSelectedPlanId(p.id)}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? 'border-[#31A895] bg-[#F0FAF8] text-[#31A895] ring-2 ring-[#31A895]/20 shadow-sm'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-extrabold text-slate-900">{p.title}</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                            {p.badge}
+                          </span>
+                        </div>
+                        <div className="text-sm font-extrabold text-[#31A895]">
+                          {p.monthlyCredits} <span className="text-[11px] font-medium text-slate-500">credits/mo</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5 font-medium">
+                          {p.pricePerMonth} EGP / month
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Duration Options (4 Tiers) */}
+              {/* Duration Options (4 Tiers) with dynamic credits per plan */}
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1.5">
                   Select Subscription Duration:
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[
-                    { id: '1_month' as const, label: '1 Month', days: '30 Days' },
-                    { id: '3_months' as const, label: '3 Months', days: '90 Days' },
-                    { id: '6_months' as const, label: '6 Months', days: '180 Days' },
-                    { id: '1_year' as const, label: 'Full Year', days: '365 Days' },
-                  ].map((dur) => (
-                    <button
-                      key={dur.id}
-                      type="button"
-                      onClick={() => setSelectedInterval(dur.id)}
-                      className={`p-2.5 rounded-xl border text-center transition-all ${
-                        selectedInterval === dur.id
-                          ? 'border-purple-600 bg-purple-50 text-purple-900 font-bold ring-1 ring-purple-600 shadow-sm'
-                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className="text-xs block font-bold">{dur.label}</span>
-                      <span className="text-[10px] text-slate-500 font-medium">{dur.days}</span>
-                    </button>
-                  ))}
+                  {DURATION_INTERVALS.map((dur) => {
+                    const isSelected = selectedInterval === dur.id;
+                    const calculatedQuota = getStandardQuota(selectedPlanId, dur.id);
+                    return (
+                      <button
+                        key={dur.id}
+                        type="button"
+                        onClick={() => setSelectedInterval(dur.id)}
+                        className={`p-2.5 rounded-xl border text-center transition-all ${
+                          isSelected
+                            ? 'border-purple-600 bg-purple-50 text-purple-900 font-bold ring-2 ring-purple-600/20 shadow-sm'
+                            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="text-xs block font-bold">{dur.label}</span>
+                        <span className="text-[11px] block font-extrabold text-purple-700 mt-0.5">
+                          +{calculatedQuota} pts
+                        </span>
+                        <span className="text-[9px] text-slate-400 block">{dur.days}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Plan Credit Quota */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-xs font-bold text-slate-700">Credits Granted for this Duration:</label>
-                  <span className="text-[11px] text-[#31A895] font-bold">{creditsQuota} credits</span>
+                  <label className="text-xs font-bold text-slate-700">
+                    Total Credits to Grant ({selectedPlanId === 'premium' ? 'Premium' : 'Pro'} &bull; {selectedInterval.replace('_', ' ')}):
+                  </label>
+                  <span className="text-xs text-[#31A895] font-extrabold">{creditsQuota} credits</span>
                 </div>
-                <input
-                  type="number"
-                  min="10"
-                  max="100000"
-                  value={creditsQuota}
-                  onChange={(e) => setCreditsQuota(Number(e.target.value) || 0)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#31A895]"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    max="100000"
+                    value={creditsQuota}
+                    onChange={(e) => setCreditsQuota(Number(e.target.value) || 0)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#31A895]"
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
+                    credits
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Standard tier quota: {getStandardQuota(selectedPlanId, selectedInterval)} credits ({selectedPlanId === 'premium' ? '210' : '80'}/mo × {selectedInterval === '1_year' ? '12' : selectedInterval === '6_months' ? '6' : selectedInterval === '3_months' ? '3' : '1'} mos). You can adjust this amount if granting a custom founder bonus.
+                </p>
               </div>
 
               {/* Continuous Rollover + 30-Day Warranty Explanation Box */}
@@ -504,7 +549,7 @@ export default function UserBalanceModal({
             ) : isCurrentlySubscribed ? (
               <span>Extend / Resubscribe Plan</span>
             ) : (
-              <span>Assign {selectedInterval === '1_year' ? '1-Year' : selectedInterval.replace('_', ' ')} Plan</span>
+              <span>Assign {selectedPlanId === 'premium' ? 'Premium' : 'Pro'} ({selectedInterval === '1_year' ? '1 Year' : selectedInterval.replace('_', ' ')})</span>
             )}
           </button>
         </div>
