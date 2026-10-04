@@ -22,8 +22,8 @@ export default function DataTable<T extends Record<string, any>>({
   className = '',
 }: DataTableProps<T>) {
   return (
-    <div className={`overflow-x-auto ${className}`}>
-      <table className="w-full">
+    <div className={`w-full overflow-x-auto ${className}`}>
+      <table className="w-full min-w-full">
         <thead>
           <tr className="border-b border-slate-200">
             {columns.map((col) => (

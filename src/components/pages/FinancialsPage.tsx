@@ -622,10 +622,10 @@ export default function FinancialsPage() {
       )}
 
       {/* Tabs Navigation */}
-      <div className="flex border-b border-slate-200">
+      <div className="flex border-b border-slate-200 overflow-x-auto scrollbar-none max-w-full shrink-0">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
+          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 shrink-0 whitespace-nowrap ${
             activeTab === 'overview'
               ? 'border-[#31A895] text-[#31A895]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -634,11 +634,11 @@ export default function FinancialsPage() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 20V10M18 20V4M6 20v-4" />
           </svg>
-          Overview & Waterfall
+          Overview &amp; Waterfall
         </button>
         <button
           onClick={() => setActiveTab('ledger')}
-          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
+          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 shrink-0 whitespace-nowrap ${
             activeTab === 'ledger'
               ? 'border-[#31A895] text-[#31A895]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -652,7 +652,7 @@ export default function FinancialsPage() {
         </button>
         <button
           onClick={() => setActiveTab('governance')}
-          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
+          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 shrink-0 whitespace-nowrap ${
             activeTab === 'governance'
               ? 'border-[#31A895] text-[#31A895]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -661,11 +661,11 @@ export default function FinancialsPage() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
-          Founder Equity & Military Hiatus
+          Founder Equity &amp; Military Hiatus
         </button>
         <button
           onClick={() => setActiveTab('purchases')}
-          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
+          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 shrink-0 whitespace-nowrap ${
             activeTab === 'purchases'
               ? 'border-[#31A895] text-[#31A895]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -675,12 +675,12 @@ export default function FinancialsPage() {
             <rect x="2" y="5" width="20" height="14" rx="2" />
             <line x1="2" y1="10" x2="22" y2="10" />
           </svg>
-          Purchases & Subscriptions
+          Purchases &amp; Subscriptions
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold ml-1">FOUNDER</span>
         </button>
         <button
           onClick={() => setActiveTab('strategy')}
-          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
+          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 shrink-0 whitespace-nowrap ${
             activeTab === 'strategy'
               ? 'border-[#31A895] text-[#31A895]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -695,7 +695,7 @@ export default function FinancialsPage() {
         </button>
         <button
           onClick={() => setActiveTab('version-legal')}
-          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
+          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 shrink-0 whitespace-nowrap ${
             activeTab === 'version-legal'
               ? 'border-[#31A895] text-[#31A895]'
               : 'border-transparent text-slate-500 hover:text-slate-700'

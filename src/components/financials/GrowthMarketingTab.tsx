@@ -122,7 +122,7 @@ export default function GrowthMarketingTab({
     return (
       <div className="space-y-6 py-6 animate-pulse">
         <div className="h-10 bg-slate-200 rounded-xl w-64" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="h-28 bg-slate-100 rounded-xl border border-slate-200" />
           ))}
@@ -235,7 +235,7 @@ export default function GrowthMarketingTab({
       </div>
 
       {/* 2. Top Executive KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <StatCard
           title="CONVERSION RATE"
           value={`${funnel?.overallConversionRate ?? 0}%`}

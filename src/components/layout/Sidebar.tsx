@@ -86,7 +86,7 @@ const Sidebar: React.FC = () => {
   };
 
   return (
-    <div className="fixed left-0 top-0 h-screen w-[237px] bg-white flex flex-col z-50 border-r border-slate-100">
+    <aside className="w-[237px] h-screen shrink-0 bg-white flex flex-col z-30 border-r border-slate-100 select-none">
       {/* Logo */}
       <div className="px-6 py-8">
         <img
@@ -136,7 +136,7 @@ const Sidebar: React.FC = () => {
           Log out
         </button>
       </div>
-    </div>
+    </aside>
   );
 };
 

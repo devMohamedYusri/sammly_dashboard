@@ -177,7 +177,7 @@ export default function SourcingTelemetryPage() {
         </div>
 
         {/* Tab Switcher */}
-        <div className="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex flex-wrap sm:inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200 max-w-full">
           <button
             onClick={() => setActiveTab('telemetry')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -326,7 +326,8 @@ export default function SourcingTelemetryPage() {
                     {telemetry.routePerformance.length} routes recorded
                   </span>
                 </div>
-                <table className="w-full text-left">
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full text-left min-w-full">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
                       <th className="px-6 py-3">Route Endpoint</th>
@@ -380,6 +381,7 @@ export default function SourcingTelemetryPage() {
                     )}
                   </tbody>
                 </table>
+                </div>
               </div>
             </>
           ) : null}
@@ -629,7 +631,8 @@ export default function SourcingTelemetryPage() {
 
           {/* Logs Table */}
           <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
-            <table className="w-full text-left">
+            <div className="w-full overflow-x-auto">
+              <table className="w-full text-left min-w-full">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
                   <th className="px-6 py-3">Image</th>
@@ -703,6 +706,7 @@ export default function SourcingTelemetryPage() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Pagination Controls */}
