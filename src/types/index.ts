@@ -172,6 +172,73 @@ export interface ApiTelemetryResponse {
   data: ApiTelemetryOverview;
 }
 
+export interface ApiTelemetryLogUser {
+  _id: string;
+  email: string;
+  name?: string;
+  role?: string;
+  status?: string;
+}
+
+export interface ApiTelemetryLogItem {
+  _id: string;
+  method: string;
+  route: string;
+  statusCode: number;
+  latencyMs: number;
+  userId?: ApiTelemetryLogUser | null;
+  timestamp: string;
+}
+
+export interface DetailedApiTelemetryData {
+  timeframe: string;
+  hours: number;
+  feature: string;
+  logs: ApiTelemetryLogItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+  summary: {
+    totalRequests: number;
+    avgLatencyMs: number;
+    successCount: number;
+    clientErrorCount: number;
+    serverErrorCount: number;
+    errorRatePercent: number;
+    topUsers: Array<{
+      _id: string;
+      count: number;
+      avgLatencyMs: number;
+      user: ApiTelemetryLogUser;
+    }>;
+    topRoutes: Array<{
+      route: string;
+      count: number;
+      avgLatencyMs: number;
+    }>;
+  };
+}
+
+export interface DetailedApiTelemetryResponse {
+  status: string;
+  data: DetailedApiTelemetryData;
+}
+
+export interface GetDetailedApiTelemetryLogsParams {
+  hours?: number;
+  feature?: 'all' | 'generation' | 'sourcing' | 'payment' | 'auth' | 'admin' | string;
+  route?: string;
+  search?: string;
+  statusCode?: string;
+  userId?: string;
+  page?: number;
+  limit?: number;
+}
+
 // Sourcing Quality & AI Analytics
 export interface QualityBreakdown {
   counts: {

@@ -41,6 +41,9 @@ import {
   TriggerLinkAuditParams,
   ManageUserBalancePayload,
   ManageUserBalanceResponse,
+  DetailedApiTelemetryResponse,
+  DetailedApiTelemetryData,
+  GetDetailedApiTelemetryLogsParams,
 } from '@/types';
 
 const PRIMARY_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -307,6 +310,24 @@ export async function closeSupportMessage(supportId: string): Promise<{ message:
 // 5) Sourcing & System Telemetry
 export async function getApiTelemetryOverview(hours: number = 24): Promise<ApiTelemetryOverview> {
   const res = await apiFetch<ApiTelemetryResponse>(`/api/admin/sourcing/telemetry/overview?hours=${hours}`);
+  return res.data;
+}
+
+export async function getDetailedApiTelemetryLogs(
+  params: GetDetailedApiTelemetryLogsParams = {}
+): Promise<DetailedApiTelemetryData> {
+  const query = new URLSearchParams();
+  if (params.hours !== undefined) query.append('hours', String(params.hours));
+  if (params.feature && params.feature !== 'all') query.append('feature', params.feature);
+  if (params.route && params.route.trim()) query.append('route', params.route.trim());
+  if (params.search && params.search.trim()) query.append('search', params.search.trim());
+  if (params.statusCode && params.statusCode !== 'all') query.append('statusCode', params.statusCode);
+  if (params.userId) query.append('userId', params.userId);
+  if (params.page !== undefined) query.append('page', String(params.page));
+  if (params.limit !== undefined) query.append('limit', String(params.limit));
+
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  const res = await apiFetch<DetailedApiTelemetryResponse>(`/api/admin/sourcing/telemetry/logs${queryString}`);
   return res.data;
 }
 

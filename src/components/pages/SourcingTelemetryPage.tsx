@@ -5,12 +5,15 @@ import StatCard from '@/components/common/StatCard';
 import Badge from '@/components/common/Badge';
 import {
   getApiTelemetryOverview,
+  getDetailedApiTelemetryLogs,
   getSourcingQualityMetrics,
   getDetailedSourcingLogs,
   getSourcingCatalogProducts,
 } from '@/lib/api';
 import {
   ApiTelemetryOverview,
+  ApiTelemetryLogItem,
+  DetailedApiTelemetryData,
   SourcingQualityMetrics,
   SourcingSearchLog,
   SearchResultItem,
@@ -28,6 +31,21 @@ export default function SourcingTelemetryPage() {
   const [timeframeHours, setTimeframeHours] = useState(24);
   const [loadingTelemetry, setLoadingTelemetry] = useState(true);
   const [telemetryError, setTelemetryError] = useState<string | null>(null);
+
+  // Tab 1: Detailed API Telemetry Logs State
+  const [apiLogs, setApiLogs] = useState<ApiTelemetryLogItem[]>([]);
+  const [apiLogsLoading, setApiLogsLoading] = useState(false);
+  const [apiLogsError, setApiLogsError] = useState<string | null>(null);
+  const [apiLogsPage, setApiLogsPage] = useState(1);
+  const [apiLogsTotalPages, setApiLogsTotalPages] = useState(1);
+  const [apiLogsTotal, setApiLogsTotal] = useState(0);
+  const [apiSummary, setApiSummary] = useState<DetailedApiTelemetryData['summary'] | null>(null);
+  const [apiSelectedFeature, setApiSelectedFeature] = useState<'all' | 'generation' | 'sourcing' | 'payment' | 'auth' | 'admin'>('all');
+  const [apiSearchQuery, setApiSearchQuery] = useState('');
+  const [apiStatusCodeFilter, setApiStatusCodeFilter] = useState('all');
+  const [apiRouteFilter, setApiRouteFilter] = useState('');
+  const [apiUserFilter, setApiUserFilter] = useState<{ id: string; email: string } | null>(null);
+  const [inspectApiLog, setInspectApiLog] = useState<ApiTelemetryLogItem | null>(null);
 
   // Tab 2: Sourcing Analytics State
   const [metrics, setMetrics] = useState<SourcingQualityMetrics | null>(null);
@@ -59,6 +77,32 @@ export default function SourcingTelemetryPage() {
       setTelemetryError(err?.message || 'Failed to fetch API telemetry data');
     } finally {
       setLoadingTelemetry(false);
+    }
+  };
+
+  // Load Detailed API Telemetry Logs
+  const fetchDetailedApiLogs = async () => {
+    setApiLogsLoading(true);
+    setApiLogsError(null);
+    try {
+      const data = await getDetailedApiTelemetryLogs({
+        hours: timeframeHours,
+        feature: apiSelectedFeature,
+        search: apiSearchQuery.trim() || undefined,
+        statusCode: apiStatusCodeFilter !== 'all' ? apiStatusCodeFilter : undefined,
+        route: apiRouteFilter.trim() || undefined,
+        userId: apiUserFilter?.id || undefined,
+        page: apiLogsPage,
+        limit: 20,
+      });
+      setApiLogs(data.logs || []);
+      setApiLogsTotalPages(data.pagination?.totalPages || 1);
+      setApiLogsTotal(data.pagination?.total || 0);
+      setApiSummary(data.summary || null);
+    } catch (err: any) {
+      setApiLogsError(err?.message || 'Failed to fetch detailed API telemetry logs');
+    } finally {
+      setApiLogsLoading(false);
     }
   };
 
@@ -139,14 +183,149 @@ export default function SourcingTelemetryPage() {
   useEffect(() => {
     if (activeTab === 'telemetry') {
       fetchTelemetry(timeframeHours);
+      fetchDetailedApiLogs();
     }
-  }, [timeframeHours]);
+  }, [
+    activeTab,
+    timeframeHours,
+    apiSelectedFeature,
+    apiStatusCodeFilter,
+    apiRouteFilter,
+    apiUserFilter,
+    apiLogsPage,
+  ]);
+
+  useEffect(() => {
+    if (activeTab === 'telemetry') {
+      const timer = setTimeout(() => {
+        setApiLogsPage(1);
+        fetchDetailedApiLogs();
+      }, apiSearchQuery ? 350 : 0);
+      return () => clearTimeout(timer);
+    }
+  }, [apiSearchQuery]);
 
   useEffect(() => {
     if (activeTab === 'logs') {
       fetchLogs();
     }
   }, [logsPage, selectedQuality, selectedValid, selectedCategory]);
+
+  const getFeatureBadge = (route: string) => {
+    const r = (route || '').toLowerCase();
+    if (r.includes('generate') || r.includes('restyle') || r.includes('full-home') || r.includes('mask')) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
+          AI Generation
+        </span>
+      );
+    }
+    if (r.includes('sourcing')) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          AI Sourcing
+        </span>
+      );
+    }
+    if (r.includes('payment') || r.includes('credits') || r.includes('balance') || r.includes('financials')) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+          Billing & Credits
+        </span>
+      );
+    }
+    if (r.includes('auth') || r.includes('profile') || r.includes('users')) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Auth & Users
+        </span>
+      );
+    }
+    if (r.includes('admin') || r.includes('support')) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+          Admin & Ops
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">
+        API Call
+      </span>
+    );
+  };
+
+  const getMethodBadge = (method: string) => {
+    const m = (method || 'GET').toUpperCase();
+    if (m === 'POST') {
+      return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">POST</span>;
+    }
+    if (m === 'GET') {
+      return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">GET</span>;
+    }
+    if (m === 'PATCH' || m === 'PUT') {
+      return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">{m}</span>;
+    }
+    if (m === 'DELETE') {
+      return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">DEL</span>;
+    }
+    return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">{m}</span>;
+  };
+
+  const getStatusCodeBadge = (code: number) => {
+    if (code >= 200 && code < 300) {
+      return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">● {code} OK</span>;
+    }
+    if (code >= 400 && code < 500) {
+      return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">▲ {code} Client</span>;
+    }
+    if (code >= 500) {
+      return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">✕ {code} Error</span>;
+    }
+    return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">{code}</span>;
+  };
+
+  const formatLatency = (ms: number) => {
+    if (ms >= 1000) {
+      return `${(ms / 1000).toFixed(2)}s`;
+    }
+    return `${ms}ms`;
+  };
+
+  const formatLogDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const formatTimeAgo = (dateStr: string) => {
+    try {
+      const diffMs = Date.now() - new Date(dateStr).getTime();
+      const mins = Math.floor(diffMs / (60 * 1000));
+      if (mins < 1) return 'just now';
+      if (mins < 60) return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `${hrs}h ago`;
+      const days = Math.floor(hrs / 24);
+      return `${days}d ago`;
+    } catch {
+      return '';
+    }
+  };
 
   const getQualityBadge = (quality: string) => {
     switch (quality) {
@@ -228,120 +407,494 @@ export default function SourcingTelemetryPage() {
       {/* TAB 1: API Telemetry */}
       {activeTab === 'telemetry' && (
         <div className="space-y-6">
-          {/* Controls */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-700">Timeframe Window</span>
-            <div className="flex items-center gap-2">
-              {[6, 12, 24, 48, 168].map((hours) => (
-                <button
-                  key={hours}
-                  onClick={() => setTimeframeHours(hours)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    timeframeHours === hours
-                      ? 'bg-[#31A895] text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {hours >= 24 ? `${hours / 24}d` : `${hours}h`}
-                </button>
-              ))}
+          {/* 1. Timeframe Window Pill Bar (90d down to 1d) */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Duration Window</span>
+                <p className="text-xs text-slate-400 mt-0.5">Filter telemetry from 90 days historical data up to live activity</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                {[
+                  { label: '1 Day', hours: 24, short: '24h' },
+                  { label: '3 Days', hours: 72, short: '3d' },
+                  { label: '1 Week', hours: 168, short: '7d' },
+                  { label: '2 Weeks', hours: 336, short: '14d' },
+                  { label: '30 Days', hours: 720, short: '30d' },
+                  { label: '90 Days', hours: 2160, short: '90d' },
+                ].map((item) => (
+                  <button
+                    key={item.hours}
+                    onClick={() => {
+                      setTimeframeHours(item.hours);
+                      setApiLogsPage(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      timeframeHours === item.hours
+                        ? 'bg-[#31A895] text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                    }`}
+                  >
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Feature / Target Quick Filter Strip */}
+            <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Target API & Feature</span>
+                <p className="text-xs text-slate-400 mt-0.5">Isolate generative AI designs, visual sourcing, billing, or user auth</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { id: 'all', label: 'All APIs' },
+                  { id: 'generation', label: 'AI Generation', highlight: true },
+                  { id: 'sourcing', label: 'AI Sourcing' },
+                  { id: 'payment', label: 'Payments & Credits' },
+                  { id: 'auth', label: 'Users & Auth' },
+                  { id: 'admin', label: 'Admin & Ops' },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => {
+                      setApiSelectedFeature(f.id as any);
+                      setApiLogsPage(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 border ${
+                      apiSelectedFeature === f.id
+                        ? f.id === 'generation'
+                          ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                          : 'bg-[#31A895] text-white border-[#31A895] shadow-sm'
+                        : f.id === 'generation'
+                        ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{f.label}</span>
+                    {f.id === 'generation' && (
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                        apiSelectedFeature === 'generation' ? 'bg-purple-700 text-white' : 'bg-purple-200 text-purple-800'
+                      }`}>
+                        Target
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {telemetryError && (
-            <div className="p-4 text-sm text-[#FF5A6E] bg-red-50 border border-red-100 rounded-xl">
-              {telemetryError}
+          {/* Active User Filter Chip if user is selected */}
+          {apiUserFilter && (
+            <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50 border border-purple-200 text-xs">
+              <div className="flex items-center gap-2 text-purple-900">
+                <span className="font-bold">Filtering logs for user:</span>
+                <span className="font-mono bg-white px-2 py-0.5 rounded border border-purple-200">{apiUserFilter.email}</span>
+              </div>
+              <button
+                onClick={() => {
+                  setApiUserFilter(null);
+                  setApiLogsPage(1);
+                }}
+                className="text-xs font-semibold text-purple-700 hover:text-purple-900 underline"
+              >
+                Clear user filter ✕
+              </button>
             </div>
           )}
 
-          {loadingTelemetry && !telemetry ? (
-            <div className="text-center py-12 text-slate-500 text-sm">
-              Loading API telemetry data...
-            </div>
-          ) : telemetry ? (
-            <>
-              {/* Stat Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <StatCard
-                  title="TOTAL API CALLS"
-                  value={telemetry.totalRequests}
-                  iconSrc="/icon-telemetry.svg"
-                />
-                <StatCard
-                  title="ERROR RATE"
-                  value={`${telemetry.errorRatePercent}%`}
-                  iconSrc="/icon-close.svg"
-                  valueColor={
-                    telemetry.errorRatePercent > 5 ? 'text-[#FF5A6E]' : 'text-[#1ECB7F]'
-                  }
-                />
-                <StatCard
-                  title="TIMEFRAME"
-                  value={telemetry.timeframe}
-                  iconSrc="/icon-check.svg"
-                />
+          {/* Summary KPI Ribbon */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              title={apiSelectedFeature === 'generation' ? "TOTAL GENERATION CALLS" : "TOTAL REQUESTS"}
+              value={apiLogsTotal.toLocaleString()}
+              subtitle={`Recorded in last ${timeframeHours >= 24 ? `${timeframeHours / 24} days` : `${timeframeHours} hrs`}`}
+              iconSrc="/icon-telemetry.svg"
+              valueColor={apiSelectedFeature === 'generation' ? "text-purple-600" : "text-slate-900"}
+            />
+            <StatCard
+              title="AVERAGE LATENCY"
+              value={formatLatency(apiSummary?.avgLatencyMs || 0)}
+              subtitle={
+                (apiSummary?.avgLatencyMs || 0) < 500
+                  ? "Fast execution (<500ms)"
+                  : (apiSummary?.avgLatencyMs || 0) > 3000
+                  ? "Heavy model inference"
+                  : "Normal response pipeline"
+              }
+              iconSrc="/icon-check.svg"
+              valueColor={(apiSummary?.avgLatencyMs || 0) > 3000 ? "text-amber-600" : "text-[#1ECB7F]"}
+            />
+            <StatCard
+              title="SUCCESS RATE"
+              value={`${apiSummary && apiLogsTotal > 0 ? (((apiSummary.successCount || 0) / apiLogsTotal) * 100).toFixed(1) : 100}%`}
+              subtitle={`${apiSummary?.successCount || 0} successful / ${apiSummary?.clientErrorCount || 0} client errors`}
+              iconSrc="/icon-check.svg"
+              valueColor="text-[#1ECB7F]"
+            />
+            <StatCard
+              title="ACTIVE CONSUMERS"
+              value={apiSummary?.topUsers?.length ? `${apiSummary.topUsers.length} users` : "0 users"}
+              subtitle={apiSelectedFeature === 'generation' ? "Generated AI interiors" : "Unique authenticated accounts"}
+              iconSrc="/icon-users.svg"
+              valueColor="text-[#0E5FBF]"
+            />
+          </div>
+
+          {/* Leaderboard: Who used this feature? (Especially AI Generation) */}
+          {apiSummary?.topUsers && apiSummary.topUsers.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-sm">
+                    {apiSelectedFeature === 'generation' ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      {apiSelectedFeature === 'generation'
+                        ? 'Top Users Who Used AI Generation'
+                        : `Top Account Consumers (${apiSelectedFeature === 'all' ? 'All Endpoints' : apiSelectedFeature})`}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Identifies which accounts made the highest number of calls and their speed
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold text-slate-400">
+                  {apiSummary.topUsers.length} accounts ranked
+                </span>
               </div>
 
-              {/* Status Code Distribution */}
-              <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                <h3 className="text-base font-semibold text-slate-900 mb-4">
-                  HTTP Status Distribution
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {['2xx', '4xx', '5xx'].map((prefix) => {
-                    const found = telemetry.statusDistribution.find((s) => s._id === prefix);
-                    const count = found ? found.count : 0;
-                    const percent =
-                      telemetry.totalRequests > 0
-                        ? ((count / telemetry.totalRequests) * 100).toFixed(1)
-                        : '0';
-
-                    let colorClass = 'text-[#1ECB7F] bg-green-50 border-green-200';
-                    if (prefix === '4xx') colorClass = 'text-yellow-700 bg-yellow-50 border-yellow-200';
-                    if (prefix === '5xx') colorClass = 'text-[#FF5A6E] bg-red-50 border-red-200';
-
-                    return (
-                      <div
-                        key={prefix}
-                        className={`p-4 rounded-xl border ${colorClass} flex flex-col justify-between`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-sm">{prefix} Responses</span>
-                          <span className="text-xs font-semibold">{percent}%</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {apiSummary.topUsers.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-3.5 rounded-xl border transition-all ${
+                      apiUserFilter?.id === item.user?._id
+                        ? 'bg-purple-50 border-purple-300 ring-2 ring-purple-400'
+                        : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                          {item.user?.email ? item.user.email.charAt(0) : 'U'}
                         </div>
-                        <p className="text-2xl font-extrabold mt-2">{count}</p>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-900 truncate" title={item.user?.email || 'Guest'}>
+                            {item.user?.email || 'Anonymous / Guest'}
+                          </p>
+                          <span className={`inline-block px-1.5 py-0.2 rounded text-[10px] font-semibold ${
+                            item.user?.role === 'founder'
+                              ? 'bg-amber-100 text-amber-800'
+                              : item.user?.role === 'admin'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {item.user?.role || 'user'}
+                          </span>
+                        </div>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-extrabold text-slate-900 block">
+                          {item.count} <span className="text-[10px] font-normal text-slate-500">calls</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-500">
+                          ~{formatLatency(item.avgLatencyMs)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5 pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-slate-500">
+                        {apiSelectedFeature === 'generation' ? 'Generation calls' : 'API usage'}
+                      </span>
+                      {item.user?._id && (
+                        <button
+                          onClick={() => {
+                            if (apiUserFilter?.id === item.user._id) {
+                              setApiUserFilter(null);
+                            } else {
+                              setApiUserFilter({ id: item.user._id, email: item.user.email });
+                            }
+                            setApiLogsPage(1);
+                          }}
+                          className="text-[11px] font-semibold text-[#31A895] hover:underline"
+                        >
+                          {apiUserFilter?.id === item.user._id ? 'Clear' : 'Filter User ➔'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Search, Status & Route Filter Bar */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="relative flex-1 max-w-md">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search by user email or endpoint route..."
+                  value={apiSearchQuery}
+                  onChange={(e) => setApiSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#31A895] focus:border-transparent"
+                />
               </div>
 
-              {/* Route Performance Table */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
-                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-slate-900">
-                    Endpoint Latency & Volume
-                  </h3>
-                  <span className="text-xs text-slate-400">
-                    {telemetry.routePerformance.length} routes recorded
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={apiStatusCodeFilter}
+                  onChange={(e) => {
+                    setApiStatusCodeFilter(e.target.value);
+                    setApiLogsPage(1);
+                  }}
+                  className="px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#31A895]"
+                >
+                  <option value="all">All HTTP Statuses</option>
+                  <option value="2xx">2xx (Success)</option>
+                  <option value="4xx">4xx (Client Errors)</option>
+                  <option value="5xx">5xx (Server Errors)</option>
+                </select>
+
+                <button
+                  onClick={() => {
+                    setApiSelectedFeature('all');
+                    setApiSearchQuery('');
+                    setApiStatusCodeFilter('all');
+                    setApiRouteFilter('');
+                    setApiUserFilter(null);
+                    setApiLogsPage(1);
+                  }}
+                  className="px-3 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                >
+                  Reset Filters
+                </button>
+
+                <button
+                  onClick={() => fetchDetailedApiLogs()}
+                  className="px-3 py-2 text-xs font-semibold text-[#31A895] border border-[#31A895] hover:bg-[#E8F5F3] rounded-lg transition-colors flex items-center gap-1.5"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="23 4 23 10 17 10" />
+                    <polyline points="1 20 1 14 7 14" />
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                  </svg>
+                  Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Detailed Request Audit Log Table */}
+          <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  Detailed API Request Audit Logs
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Real-time log stream with user identities, endpoints, latency execution, and status
+                </p>
+              </div>
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                {apiLogsTotal.toLocaleString()} calls recorded
+              </span>
+            </div>
+
+            {apiLogsError && (
+              <div className="p-4 text-xs text-[#FF5A6E] bg-red-50 border-b border-red-100">
+                {apiLogsError}
+              </div>
+            )}
+
+            <div className="w-full overflow-x-auto">
+              <table className="w-full text-left min-w-full">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th className="px-5 py-3">TIMESTAMP</th>
+                    <th className="px-5 py-3">USER ACCOUNT</th>
+                    <th className="px-5 py-3">FEATURE</th>
+                    <th className="px-5 py-3">METHOD & ROUTE</th>
+                    <th className="px-5 py-3">STATUS</th>
+                    <th className="px-5 py-3">LATENCY</th>
+                    <th className="px-5 py-3 text-right">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {apiLogsLoading ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-slate-400 text-xs">
+                        Loading detailed API telemetry logs...
+                      </td>
+                    </tr>
+                  ) : apiLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-slate-400 text-xs">
+                        No API logs match the selected timeframe and filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    apiLogs.map((log) => (
+                      <tr key={log._id} className="hover:bg-slate-50/80 transition-colors">
+                        {/* 1. Timestamp */}
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <span className="font-medium text-slate-800 block text-xs">
+                            {formatLogDate(log.timestamp)}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono block">
+                            {formatTimeAgo(log.timestamp)}
+                          </span>
+                        </td>
+
+                        {/* 2. User */}
+                        <td className="px-5 py-3.5">
+                          {log.userId ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] uppercase shrink-0">
+                                {log.userId.email ? log.userId.email.charAt(0) : 'U'}
+                              </div>
+                              <div className="min-w-0 max-w-[180px]">
+                                <span className="font-semibold text-slate-900 truncate block text-xs" title={log.userId.email}>
+                                  {log.userId.email}
+                                </span>
+                                <span className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                                  log.userId.role === 'founder'
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : log.userId.role === 'admin'
+                                    ? 'bg-purple-100 text-purple-800'
+                                    : 'bg-blue-100 text-blue-800'
+                                }`}>
+                                  {log.userId.role || 'user'}
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                              Guest / Anonymous
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 3. Feature */}
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          {getFeatureBadge(log.route)}
+                        </td>
+
+                        {/* 4. Method & Route */}
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2">
+                            {getMethodBadge(log.method)}
+                            <span className="font-mono text-xs text-slate-800 truncate max-w-[220px]" title={log.route}>
+                              {log.route}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* 5. Status */}
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          {getStatusCodeBadge(log.statusCode)}
+                        </td>
+
+                        {/* 6. Latency */}
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <span className={`font-mono font-bold text-xs ${
+                            log.latencyMs > 3000 ? 'text-amber-600' : 'text-slate-800'
+                          }`}>
+                            {formatLatency(log.latencyMs)}
+                          </span>
+                        </td>
+
+                        {/* 7. Action */}
+                        <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => setInspectApiLog(log)}
+                            className="px-2.5 py-1 text-xs font-semibold text-[#31A895] hover:bg-[#E8F5F3] rounded-md transition-colors"
+                          >
+                            Inspect ➔
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {apiLogsTotalPages > 1 && (
+              <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs">
+                <span className="text-slate-500">
+                  Showing page <span className="font-bold text-slate-800">{apiLogsPage}</span> of{' '}
+                  <span className="font-bold text-slate-800">{apiLogsTotalPages}</span> ({apiLogsTotal} total records)
+                </span>
+                <div className="flex items-center gap-1.5 self-center sm:self-auto">
+                  <button
+                    onClick={() => setApiLogsPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={apiLogsPage <= 1 || apiLogsLoading}
+                    className="px-3 py-1.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-3 py-1.5 font-bold text-slate-800">
+                    {apiLogsPage} / {apiLogsTotalPages}
                   </span>
+                  <button
+                    onClick={() => setApiLogsPage((prev) => Math.min(prev + 1, apiLogsTotalPages))}
+                    disabled={apiLogsPage >= apiLogsTotalPages || apiLogsLoading}
+                    className="px-3 py-1.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium"
+                  >
+                    Next
+                  </button>
                 </div>
-                <div className="w-full overflow-x-auto">
-                  <table className="w-full text-left min-w-full">
+              </div>
+            )}
+          </div>
+
+          {/* Aggregated Endpoint Performance Summary */}
+          {telemetry && (
+            <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Endpoint Latency & Volume Overview
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Aggregated average and maximum execution times across top endpoints
+                  </p>
+                </div>
+                <span className="text-xs text-slate-400">
+                  {telemetry.routePerformance.length} routes recorded
+                </span>
+              </div>
+              <div className="w-full overflow-x-auto">
+                <table className="w-full text-left min-w-full">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
-                      <th className="px-6 py-3">Route Endpoint</th>
-                      <th className="px-6 py-3">Total Calls</th>
-                      <th className="px-6 py-3">Avg Latency</th>
-                      <th className="px-6 py-3">Max Latency</th>
-                      <th className="px-6 py-3">Latency Health</th>
+                    <tr className="border-b border-slate-100 bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="px-6 py-3">ROUTE ENDPOINT</th>
+                      <th className="px-6 py-3">TOTAL CALLS</th>
+                      <th className="px-6 py-3">AVG LATENCY</th>
+                      <th className="px-6 py-3">MAX LATENCY</th>
+                      <th className="px-6 py-3">SPEED HEALTH</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-sm">
+                  <tbody className="divide-y divide-slate-100 text-xs">
                     {telemetry.routePerformance.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
-                          No route metrics available for this timeframe
+                          No route metrics recorded for this duration
                         </td>
                       </tr>
                     ) : (
@@ -373,7 +926,7 @@ export default function SourcingTelemetryPage() {
                                 ? 'Fast (<300ms)'
                                 : route.avgLatencyMs < 1000
                                 ? 'Moderate'
-                                : 'High Latency'}
+                                : 'Heavy Execution'}
                             </Badge>
                           </td>
                         </tr>
@@ -381,10 +934,9 @@ export default function SourcingTelemetryPage() {
                     )}
                   </tbody>
                 </table>
-                </div>
               </div>
-            </>
-          ) : null}
+            </div>
+          )}
         </div>
       )}
 
@@ -874,6 +1426,126 @@ export default function SourcingTelemetryPage() {
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setInspectLog(null)}
+                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* API Log Diagnostic Inspection Modal */}
+      {inspectApiLog && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-5 shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#31A895]"></span>
+                  <h2 className="text-lg font-bold text-slate-900">API Call Diagnostic Inspection</h2>
+                </div>
+                <p className="text-xs text-slate-400 mt-1 font-mono">Trace ID: {inspectApiLog._id}</p>
+              </div>
+              <button
+                onClick={() => setInspectApiLog(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">HTTP Method & Status</span>
+                <div className="flex items-center gap-2 mt-1">
+                  {getMethodBadge(inspectApiLog.method)}
+                  {getStatusCodeBadge(inspectApiLog.statusCode)}
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Execution Latency</span>
+                <span className="text-sm font-extrabold text-slate-900 font-mono mt-1 block">
+                  {inspectApiLog.latencyMs.toLocaleString()} ms ({formatLatency(inspectApiLog.latencyMs)})
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Classified Feature</span>
+                <div className="mt-1">
+                  {getFeatureBadge(inspectApiLog.route)}
+                </div>
+              </div>
+            </div>
+
+            {/* Endpoint Route */}
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Endpoint Path</span>
+              <p className="font-mono text-xs text-slate-900 font-bold break-all select-all">
+                {inspectApiLog.route}
+              </p>
+            </div>
+
+            {/* User Account Details */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Caller Identity</span>
+                {inspectApiLog.userId ? (
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    inspectApiLog.userId.role === 'founder'
+                      ? 'bg-amber-100 text-amber-800'
+                      : inspectApiLog.userId.role === 'admin'
+                      ? 'bg-purple-100 text-purple-800'
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {inspectApiLog.userId.role || 'user'}
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-400">Public / Unauthenticated</span>
+                )}
+              </div>
+
+              {inspectApiLog.userId ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-slate-400 block">Email Address:</span>
+                    <span className="font-semibold text-slate-900 select-all">{inspectApiLog.userId.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block">User ID:</span>
+                    <span className="font-mono text-slate-700 select-all">{inspectApiLog.userId._id}</span>
+                  </div>
+                  {inspectApiLog.userId.name && (
+                    <div>
+                      <span className="text-slate-400 block">Full Name:</span>
+                      <span className="font-semibold text-slate-900">{inspectApiLog.userId.name}</span>
+                    </div>
+                  )}
+                  {inspectApiLog.userId.status && (
+                    <div>
+                      <span className="text-slate-400 block">Account Status:</span>
+                      <span className="font-medium text-emerald-600 capitalize">{inspectApiLog.userId.status}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  This call was executed without an active authentication session (guest endpoint or public asset request).
+                </p>
+              )}
+            </div>
+
+            {/* Timestamp */}
+            <div className="flex justify-between items-center text-xs text-slate-500 border-t border-slate-100 pt-3">
+              <span>Timestamp: <strong className="text-slate-700 font-mono">{formatLogDate(inspectApiLog.timestamp)}</strong></span>
+              <span className="font-mono text-slate-400">{inspectApiLog.timestamp}</span>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setInspectApiLog(null)}
                 className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
               >
                 Close
