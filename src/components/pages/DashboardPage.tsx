@@ -17,6 +17,16 @@ import {
   ApiTelemetryOverview,
 } from '@/types';
 
+function CoinsIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M3 5v14a9 3 0 0 0 18 0V5" />
+      <path d="M3 12a9 3 0 0 0 18 0" />
+    </svg>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user: currentUser } = useAuth();
@@ -398,8 +408,10 @@ export default function DashboardPage() {
                   }}
                   className="p-3 rounded-xl border border-emerald-200 bg-[#F0FAF8] text-left hover:bg-[#E2F7F2] hover:border-[#31A895] transition-all group shadow-2xs"
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-base">💰</span>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-8 h-8 rounded-lg bg-white border border-[#A3D7CF] flex items-center justify-center shadow-3xs">
+                      <CoinsIcon className="w-4 h-4 text-[#31A895]" />
+                    </div>
                     <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-[#31A895] text-white">
                       FOUNDER
                     </span>
@@ -415,7 +427,12 @@ export default function DashboardPage() {
                 onClick={() => router.push('/dashboard/sourcing')}
                 className="p-3 rounded-xl border border-slate-200 bg-white text-left hover:bg-slate-50 hover:border-slate-300 transition-all group shadow-2xs"
               >
-                <div className="text-base mb-1">🔍</div>
+                <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-center mb-1.5 shadow-3xs text-slate-600 group-hover:text-[#31A895]">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </div>
                 <p className="text-xs font-bold text-slate-900 group-hover:text-[#31A895]">Audit Links</p>
                 <p className="text-[10px] text-slate-500 mt-0.5">Verify catalog alive</p>
               </button>
@@ -426,7 +443,11 @@ export default function DashboardPage() {
                 onClick={() => router.push('/dashboard/support')}
                 className="p-3 rounded-xl border border-slate-200 bg-white text-left hover:bg-slate-50 hover:border-slate-300 transition-all group shadow-2xs"
               >
-                <div className="text-base mb-1">💬</div>
+                <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-center mb-1.5 shadow-3xs text-slate-600 group-hover:text-[#31A895]">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </div>
                 <p className="text-xs font-bold text-slate-900 group-hover:text-[#31A895]">Support Box</p>
                 <p className="text-[10px] text-slate-500 mt-0.5">Review user tickets</p>
               </button>
@@ -438,7 +459,12 @@ export default function DashboardPage() {
                   onClick={() => router.push('/dashboard/token-pricing')}
                   className="p-3 rounded-xl border border-slate-200 bg-white text-left hover:bg-slate-50 hover:border-slate-300 transition-all group shadow-2xs"
                 >
-                  <div className="text-base mb-1">💎</div>
+                  <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-center mb-1.5 shadow-3xs text-slate-600 group-hover:text-[#31A895]">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 3h12l4 6-10 13L2 9Z" />
+                      <path d="M11 3 8 9l4 13 4-13-3-6" />
+                    </svg>
+                  </div>
                   <p className="text-xs font-bold text-slate-900 group-hover:text-[#31A895]">Token Pricing</p>
                   <p className="text-[10px] text-slate-500 mt-0.5">Manage app tiers</p>
                 </button>
@@ -526,10 +552,10 @@ export default function DashboardPage() {
                             setBalanceTargetUser(u);
                             setShowBalanceModal(true);
                           }}
-                          className="w-6 h-6 rounded-md bg-slate-100 hover:bg-[#E8F5F3] text-slate-600 hover:text-[#31A895] flex items-center justify-center text-xs font-bold transition-colors"
+                          className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-[#E8F5F3] text-slate-600 hover:text-[#31A895] flex items-center justify-center transition-colors shadow-3xs"
                           title="Manage credits"
                         >
-                          ⚡
+                          <CoinsIcon className="w-3.5 h-3.5 text-[#31A895]" />
                         </button>
                       )}
                     </div>

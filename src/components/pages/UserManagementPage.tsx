@@ -9,6 +9,16 @@ import { useAuth } from '@/context/AuthContext';
 import { getUsers, activateUser, deactivateUser } from '@/lib/api';
 import { ApiUser } from '@/types';
 
+function CoinsIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M3 5v14a9 3 0 0 0 18 0V5" />
+      <path d="M3 12a9 3 0 0 0 18 0" />
+    </svg>
+  );
+}
+
 export default function UserManagementPage() {
   const { user: currentUser } = useAuth();
   const isFounder = currentUser?.role === 'founder';
@@ -250,10 +260,10 @@ export default function UserManagementPage() {
                   setBalanceTargetUser(row);
                   setShowBalanceModal(true);
                 }}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-[#31A895] bg-[#E8F5F3] hover:bg-[#d5eeea] rounded-lg transition-colors border border-[#A3D7CF] shadow-2xs"
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-[#31A895] bg-[#E8F5F3] hover:bg-[#d5eeea] rounded-lg transition-colors border border-[#A3D7CF] shadow-2xs"
                 title="Manage credits & subscription"
               >
-                <span>⚡</span>
+                <CoinsIcon className="w-3.5 h-3.5 text-[#31A895]" />
                 <span>Balance</span>
               </button>
             )}
@@ -311,9 +321,10 @@ export default function UserManagementPage() {
                 setBalanceTargetUser(null);
                 setShowBalanceModal(true);
               }}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#31A895] text-white text-xs font-bold hover:bg-[#289076] transition-colors shadow-sm cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#31A895] text-white text-xs font-bold hover:bg-[#289076] transition-colors shadow-xs cursor-pointer"
             >
-              <span>⚡ Quick Balance &amp; Sub</span>
+              <CoinsIcon className="w-4 h-4 text-white" />
+              <span>Quick Balance &amp; Sub</span>
             </button>
           )}
         </div>
