@@ -7,6 +7,20 @@ export interface User {
 }
 
 // API types
+export interface UserSubscriptionDetails {
+  planId?: string | null;
+  planTitle?: string | null;
+  interval?: '1_month' | '3_months' | '6_months' | '1_year' | 'none';
+  status?: 'none' | 'active' | 'lapsed' | 'expired' | 'cancelled';
+  startDate?: string | null;
+  expiresAt?: string | null;
+  gracePeriodExpiresAt?: string | null;
+  creditsQuota?: number;
+  subscriptionCreditsBank?: number;
+  rolloverEnabled?: boolean;
+  lastRenewedAt?: string | null;
+}
+
 export interface ApiUser {
   _id: string;
   email: string;
@@ -16,6 +30,31 @@ export interface ApiUser {
   credits?: number;
   tokens?: number;
   joinAt: string;
+  isSubscription?: string[];
+  subscriptionDetails?: UserSubscriptionDetails | null;
+}
+
+export interface ManageUserBalancePayload {
+  targetUserId?: string;
+  targetEmail?: string;
+  actionType: 'add_credits' | 'assign_subscription' | 'renew_subscription' | 'cancel_subscription';
+  creditAmount?: number;
+  planId?: string;
+  planTitle?: string;
+  interval?: '1_month' | '3_months' | '6_months' | '1_year';
+  creditsQuota?: number;
+  rolloverEnabled?: boolean;
+  reason?: string;
+}
+
+export interface ManageUserBalanceResponse {
+  userId: string;
+  email: string;
+  credits: number;
+  addedCredits?: number;
+  isSubscription?: string[];
+  subscriptionDetails?: UserSubscriptionDetails | null;
+  message: string;
 }
 
 export interface ApiUsersResponse {

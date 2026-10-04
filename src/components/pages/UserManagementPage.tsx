@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import DataTable from '@/components/common/DataTable';
 import Badge from '@/components/common/Badge';
 import StatCard from '@/components/common/StatCard';
+import UserBalanceModal from '@/components/users/UserBalanceModal';
 import { useAuth } from '@/context/AuthContext';
 import { getUsers, activateUser, deactivateUser } from '@/lib/api';
 import { ApiUser } from '@/types';
@@ -20,6 +21,10 @@ export default function UserManagementPage() {
   const [hasMore, setHasMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // values: 'all' | 'Active' | 'Pending' | 'Inactive'
+
+  // Founder Balance & Subscription Modal State
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
+  const [balanceTargetUser, setBalanceTargetUser] = useState<ApiUser | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -124,13 +129,38 @@ export default function UserManagementPage() {
     },
     {
       key: 'credits' as const,
-      label: 'CREDITS',
+      label: 'CREDITS & PLAN',
       render: (value: unknown, row: ApiUser) => {
         const amount = Number(row.credits !== undefined ? row.credits : (row.tokens || 0));
+        const sub = row.subscriptionDetails;
+        const isActiveSub = sub?.status === 'active';
+        const isLapsed = sub?.status === 'lapsed';
+
         return (
-          <span className="font-semibold text-slate-800">
-            {amount.toFixed(1)} <span className="text-xs text-slate-400 font-normal">pts</span>
-          </span>
+          <div className="flex flex-col gap-1">
+            <span className="font-bold text-slate-800">
+              {amount.toFixed(1)} <span className="text-xs text-slate-400 font-normal">pts</span>
+            </span>
+            {isActiveSub ? (
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 w-fit"
+                title={`Expires: ${sub?.expiresAt ? sub.expiresAt.split('T')[0] : 'Active'}`}
+              >
+                <span>👑</span>
+                <span>{sub?.planTitle || sub?.interval?.replace('_', ' ') || 'Subscribed'}</span>
+              </span>
+            ) : isLapsed ? (
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 w-fit"
+                title={`30d warranty grace period ends: ${sub?.gracePeriodExpiresAt ? sub.gracePeriodExpiresAt.split('T')[0] : 'Soon'}`}
+              >
+                <span>⏳</span>
+                <span>Lapsed (30d Grace)</span>
+              </span>
+            ) : (
+              <span className="text-[10px] text-slate-400 font-medium">Free Tier</span>
+            )}
+          </div>
         );
       }
     },
@@ -166,19 +196,35 @@ export default function UserManagementPage() {
         }
 
         return (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleToggleStatus(row);
-            }}
-            className={`text-sm font-medium ${
-              row.status === 'active'
-                ? 'text-[#FF5A6E] hover:text-[#e64e5f]'
-                : 'text-[#31A895] hover:text-[#289076]'
-            }`}
-          >
-            {row.status === 'active' ? 'Deactivate' : 'Activate'}
-          </button>
+          <div className="flex items-center gap-2.5">
+            {isFounder && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setBalanceTargetUser(row);
+                  setShowBalanceModal(true);
+                }}
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-[#31A895] bg-[#E8F5F3] hover:bg-[#d5eeea] rounded-lg transition-colors border border-[#A3D7CF] shadow-xs"
+                title="Manage credits & subscription"
+              >
+                <span>⚡</span>
+                <span>Balance</span>
+              </button>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleStatus(row);
+              }}
+              className={`text-xs font-semibold ${
+                row.status === 'active'
+                  ? 'text-[#FF5A6E] hover:text-[#e64e5f]'
+                  : 'text-[#31A895] hover:text-[#289076]'
+              }`}
+            >
+              {row.status === 'active' ? 'Deactivate' : 'Activate'}
+            </button>
+          </div>
         );
       }
     },
@@ -187,9 +233,23 @@ export default function UserManagementPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">User Management</h1>
-        <p className="text-slate-500 mt-1">Activate or deactivate user accounts</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">User Management</h1>
+          <p className="text-slate-500 mt-1">Activate, deactivate, and manage user accounts &amp; credit balances</p>
+        </div>
+
+        {isFounder && (
+          <button
+            onClick={() => {
+              setBalanceTargetUser(null);
+              setShowBalanceModal(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#31A895] text-white text-xs font-bold hover:bg-[#289076] transition-colors shadow-sm self-start sm:self-auto cursor-pointer"
+          >
+            <span>⚡ Quick Balance &amp; Sub</span>
+          </button>
+        )}
       </div>
 
       {/* Search and Filter */}
@@ -273,6 +333,17 @@ export default function UserManagementPage() {
             {loading ? 'Loading...' : 'Load More'}
           </button>
         </div>
+      )}
+
+      {/* Founder-Exclusive Balance & Subscription Modal */}
+      {isFounder && (
+        <UserBalanceModal
+          isOpen={showBalanceModal}
+          onClose={() => setShowBalanceModal(false)}
+          targetUser={balanceTargetUser}
+          allUsers={users}
+          onSuccess={() => fetchUsers()}
+        />
       )}
     </div>
   );

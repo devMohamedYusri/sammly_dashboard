@@ -39,6 +39,8 @@ import {
   LinkAuditResponse,
   LinkAuditStatus,
   TriggerLinkAuditParams,
+  ManageUserBalancePayload,
+  ManageUserBalanceResponse,
 } from '@/types';
 
 const PRIMARY_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -599,5 +601,18 @@ export async function addFounderCredits(
   });
   return res.data;
 }
+
+// 10) Founder-Exclusive User Balance & Subscription Manager
+export async function manageUserBalance(payload: ManageUserBalancePayload): Promise<ManageUserBalanceResponse> {
+  const res = await apiFetch<{ status: string; data: ManageUserBalanceResponse }>(
+    '/api/admin/founder/manage-user-balance',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }
+  );
+  return res.data;
+}
+
 
 
