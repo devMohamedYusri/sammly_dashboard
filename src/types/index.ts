@@ -644,5 +644,116 @@ export interface ToggleMilitaryHiatusPayload {
   reason?: string;
 }
 
+// Growth, Strategic & Marketing Intelligence
+export interface ConversionFunnelDropoffs {
+  signupToActivationDrop: number;
+  activationToCheckoutDrop: number;
+  checkoutToPaidDrop: number;
+}
+
+export interface ConversionFunnelData {
+  totalUsers: number;
+  totalUsersAllTime?: number;
+  activatedUsers: number;
+  activationRate: number;
+  checkoutInitiators: number;
+  intentRate: number;
+  payingUsers: number;
+  checkoutSuccessRate: number;
+  overallConversionRate: number;
+  stageDropoffs: ConversionFunnelDropoffs;
+}
+
+export interface PackageGrowthBreakdown {
+  packageId: string;
+  count: number;
+  revenue: number;
+}
+
+export interface UnitEconomicsData {
+  totalRevenueEGP: number;
+  ltvEGP: number;
+  aovEGP: number;
+  arpuEGP: number;
+  repeatPurchaseRate: number;
+  singleBuyerCount: number;
+  repeatBuyerCount: number;
+  packageBreakdown: PackageGrowthBreakdown[];
+}
+
+export interface BurnAndRunwayData {
+  monthlyBurnEGP: number;
+  monthlyRevenueEGP: number;
+  netBurnEGP: number;
+  estimatedRunwayMonths: number | null;
+  netOutstandingFounderCapital: number;
+  marketingSpendLedgerEGP: number;
+  calculatedCacEGP: number;
+  ltvToCacRatio: number | null;
+}
+
+export interface AuthMethodSplit {
+  provider: string;
+  users: number;
+  payingCount: number;
+  conversionRate: number;
+}
+
+export interface TimeToPurchaseBucket {
+  label: string;
+  count: number;
+  percentage: number;
+}
+
+export interface AcquisitionInsightsData {
+  authSplit: AuthMethodSplit[];
+  timeToFirstPurchaseDistribution: TimeToPurchaseBucket[];
+}
+
+export interface ProductDriversData {
+  topStyles: { style: string; count: number }[];
+  topRooms: { room: string; count: number }[];
+  avgGenerationsBeforePurchase: number;
+}
+
+export interface CheckoutFailureReason {
+  reason: string;
+  count: number;
+}
+
+export interface CheckoutProviderStat {
+  provider: string;
+  totalAttempts: number;
+  completedCount: number;
+  completedAmount: number;
+  successRate: number;
+}
+
+export interface CheckoutFrictionData {
+  totalAttempts: number;
+  completedCount: number;
+  failedCount: number;
+  pendingCount: number;
+  abandonmentRate: number;
+  failureReasons: CheckoutFailureReason[];
+  providers: CheckoutProviderStat[];
+}
+
+export interface MarketingStrategyAnalyticsData {
+  timeframe: '7d' | '30d' | '90d' | 'all' | string;
+  generatedAt: string;
+  funnel: ConversionFunnelData;
+  unitEconomics: UnitEconomicsData;
+  burnAndRunway: BurnAndRunwayData;
+  acquisitionInsights: AcquisitionInsightsData;
+  productDrivers: ProductDriversData;
+  checkoutFriction: CheckoutFrictionData;
+}
+
+export interface ApiMarketingStrategyResponse {
+  status: string;
+  data: MarketingStrategyAnalyticsData;
+}
+
 
 

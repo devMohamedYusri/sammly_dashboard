@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import StatCard from '@/components/common/StatCard';
 import Badge from '@/components/common/Badge';
 import Card from '@/components/common/Card';
+import GrowthMarketingTab from '@/components/financials/GrowthMarketingTab';
 import { useAuth } from '@/context/AuthContext';
 import {
   getLedgerOverview,
@@ -35,7 +36,7 @@ export default function FinancialsPage() {
   const isFounder = user?.role === 'founder';
 
   // State
-  const [activeTab, setActiveTab] = useState<'overview' | 'ledger' | 'governance' | 'purchases' | 'version-legal'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'ledger' | 'governance' | 'purchases' | 'strategy' | 'version-legal'>('overview');
   const [version, setVersion] = useState<AppVersionData | null>(null);
   const [versionLoading, setVersionLoading] = useState(false);
   const [versionError, setVersionError] = useState<string | null>(null);
@@ -678,6 +679,21 @@ export default function FinancialsPage() {
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold ml-1">FOUNDER</span>
         </button>
         <button
+          onClick={() => setActiveTab('strategy')}
+          className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
+            activeTab === 'strategy'
+              ? 'border-[#31A895] text-[#31A895]'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+            <polyline points="17 6 23 6 23 12" />
+          </svg>
+          Strategy &amp; Marketing
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold ml-1">FOUNDER</span>
+        </button>
+        <button
           onClick={() => setActiveTab('version-legal')}
           className={`pb-3 px-5 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
             activeTab === 'version-legal'
@@ -884,6 +900,28 @@ export default function FinancialsPage() {
               ))}
             </div>
           </div>
+
+          {/* Growth & Conversion Strategy Quick Banner (Founder-Only) */}
+          {isFounder && (
+            <div className="bg-gradient-to-r from-white via-[#F0FAF8] to-white rounded-xl border border-[#d5eeea] p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-bold text-slate-900">Startup Marketing &amp; Conversion Intelligence</span>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-[#31A895] text-white">NEW</span>
+                </div>
+                <p className="text-xs text-slate-600">
+                  Inspect conversion funnels, LTV : CAC golden ratios, runway burn projections, and high-converting ad styles.
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveTab('strategy')}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#31A895] text-white text-xs font-semibold hover:bg-[#289076] transition-colors shadow-sm flex-shrink-0"
+              >
+                <span>Open Strategy &amp; Marketing</span>
+                <span>&rarr;</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -1704,6 +1742,17 @@ export default function FinancialsPage() {
             </>
           )}
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4.5: STRATEGY & MARKETING (FOUNDER-ONLY) */}
+      {/* ========================================================================= */}
+      {activeTab === 'strategy' && (
+        <GrowthMarketingTab
+          isFounder={isFounder}
+          onNavigateToPurchases={() => setActiveTab('purchases')}
+          onNavigateToLedger={() => setActiveTab('ledger')}
+        />
       )}
 
       {/* ========================================================================= */}

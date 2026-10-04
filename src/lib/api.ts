@@ -32,6 +32,8 @@ import {
   LedgerCurrency,
   ApiPurchasesAnalyticsResponse,
   PurchasesAnalyticsData,
+  ApiMarketingStrategyResponse,
+  MarketingStrategyAnalyticsData,
   CatalogProductsResponse,
   GetCatalogProductsParams,
   LinkAuditResponse,
@@ -536,6 +538,16 @@ export async function syncSingleTransaction(id: string): Promise<any> {
   const res = await apiFetch<{ status: string; data: any }>(`/api/admin/financials/transactions/${id}/sync`, {
     method: 'POST'
   });
+  return res.data;
+}
+
+// 8.5) Growth, Strategic & Marketing Analytics
+export async function getMarketingStrategyAnalytics(
+  timeframe: '7d' | '30d' | '90d' | 'all' | string = '30d'
+): Promise<MarketingStrategyAnalyticsData> {
+  const res = await apiFetch<ApiMarketingStrategyResponse>(
+    `/api/admin/financials/growth-analytics?timeframe=${timeframe}`
+  );
   return res.data;
 }
 
