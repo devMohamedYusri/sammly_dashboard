@@ -142,13 +142,21 @@ export default function UserManagementPage() {
               {amount.toFixed(1)} <span className="text-xs text-slate-400 font-normal">pts</span>
             </span>
             {isActiveSub ? (
-              <span
-                className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 w-fit"
-                title={`Expires: ${sub?.expiresAt ? sub.expiresAt.split('T')[0] : 'Active'}`}
-              >
-                <span>👑</span>
-                <span>{sub?.planTitle || sub?.interval?.replace('_', ' ') || 'Subscribed'}</span>
-              </span>
+              <div className="flex flex-col gap-0.5">
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 w-fit"
+                  title={`Expires: ${sub?.expiresAt ? sub.expiresAt.split('T')[0] : 'Active'}`}
+                >
+                  <span>👑</span>
+                  <span>{sub?.planTitle || sub?.interval?.replace('_', ' ') || 'Subscribed'}</span>
+                </span>
+                {sub?.totalCycles && sub.totalCycles > 1 && (
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    Mo {sub.dispatchedCycles || 1}/{sub.totalCycles}
+                    {sub.nextDispatchDate ? ` • Next: ${sub.nextDispatchDate.split('T')[0]}` : ''}
+                  </span>
+                )}
+              </div>
             ) : isLapsed ? (
               <span
                 className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 w-fit"

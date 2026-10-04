@@ -438,6 +438,7 @@ export default function UserBalanceModal({
                   {DURATION_INTERVALS.map((dur) => {
                     const isSelected = selectedInterval === dur.id;
                     const calculatedQuota = getStandardQuota(selectedPlanId, dur.id);
+                    const baseMonthly = selectedPlanId === 'premium' ? 210 : 80;
                     return (
                       <button
                         key={dur.id}
@@ -451,20 +452,62 @@ export default function UserBalanceModal({
                       >
                         <span className="text-xs block font-bold">{dur.label}</span>
                         <span className="text-[11px] block font-extrabold text-purple-700 mt-0.5">
-                          +{calculatedQuota} pts
+                          {dur.months === 1 ? `+${calculatedQuota} pts` : `${baseMonthly} pts/mo`}
                         </span>
-                        <span className="text-[9px] text-slate-400 block">{dur.days}</span>
+                        <span className="text-[9px] text-slate-400 block">
+                          {dur.months === 1 ? dur.days : `${calculatedQuota} pts total`}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
+              {/* Monthly Staged Allotment Breakdown */}
+              {(() => {
+                const baseMonthly = selectedPlanId === 'premium' ? 210 : 80;
+                const totalMonths = selectedInterval === '1_year' ? 12 : selectedInterval === '6_months' ? 6 : selectedInterval === '3_months' ? 3 : 1;
+                return (
+                  <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 text-xs space-y-2">
+                    <div className="flex justify-between items-center text-purple-900 font-bold">
+                      <span>Monthly Staged Dispatch Schedule:</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-200/80 text-purple-900 font-extrabold">
+                        {totalMonths === 1 ? 'Single Month' : `${totalMonths} Monthly Cycles`}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-0.5">
+                      <div className="p-2.5 rounded-xl bg-white border border-purple-100 shadow-xs">
+                        <span className="text-slate-500 block text-[10px] uppercase font-bold">Granted Today (Month 1)</span>
+                        <span className="text-base font-extrabold text-[#31A895]">+{baseMonthly} credits</span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">Added to balance immediately</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white border border-purple-100 shadow-xs">
+                        <span className="text-slate-500 block text-[10px] uppercase font-bold">Subsequent Dispatches</span>
+                        <span className="text-base font-extrabold text-purple-700">
+                          {totalMonths > 1 ? `+${baseMonthly} pts / mo` : 'None (1 mo term)'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          {totalMonths > 1 ? `Every 30 days for ${totalMonths - 1} months` : 'Cycle ends in 30 days'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-1.5 border-t border-purple-200/60 flex justify-between items-center text-purple-950 font-bold">
+                      <span>Total Plan Commitment:</span>
+                      <span className="text-purple-800 text-xs font-extrabold">
+                        {creditsQuota} credits ({totalMonths} × {baseMonthly} pts)
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Plan Credit Quota */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
                   <label className="text-xs font-bold text-slate-700">
-                    Total Credits to Grant ({selectedPlanId === 'premium' ? 'Premium' : 'Pro'} &bull; {selectedInterval.replace('_', ' ')}):
+                    Total Credits Commitment ({selectedPlanId === 'premium' ? 'Premium' : 'Pro'} &bull; {selectedInterval.replace('_', ' ')}):
                   </label>
                   <span className="text-xs text-[#31A895] font-extrabold">{creditsQuota} credits</span>
                 </div>
@@ -482,7 +525,7 @@ export default function UserBalanceModal({
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-400 mt-1">
-                  Standard tier quota: {getStandardQuota(selectedPlanId, selectedInterval)} credits ({selectedPlanId === 'premium' ? '210' : '80'}/mo × {selectedInterval === '1_year' ? '12' : selectedInterval === '6_months' ? '6' : selectedInterval === '3_months' ? '3' : '1'} mos). You can adjust this amount if granting a custom founder bonus.
+                  Standard tier quota: {getStandardQuota(selectedPlanId, selectedInterval)} credits ({selectedPlanId === 'premium' ? '210' : '80'}/mo × {selectedInterval === '1_year' ? '12' : selectedInterval === '6_months' ? '6' : selectedInterval === '3_months' ? '3' : '1'} mos). Only Month 1 credits are granted today; subsequent months dispatch automatically every 30 days.
                 </p>
               </div>
 
@@ -549,7 +592,13 @@ export default function UserBalanceModal({
             ) : isCurrentlySubscribed ? (
               <span>Extend / Resubscribe Plan</span>
             ) : (
-              <span>Assign {selectedPlanId === 'premium' ? 'Premium' : 'Pro'} ({selectedInterval === '1_year' ? '1 Year' : selectedInterval.replace('_', ' ')})</span>
+              <span>
+                Assign {selectedPlanId === 'premium' ? 'Premium' : 'Pro'} (+{selectedPlanId === 'premium' ? 210 : 80} pts today
+                {selectedInterval !== '1_month'
+                  ? ` • Month 1 of ${selectedInterval === '1_year' ? 12 : selectedInterval === '6_months' ? 6 : 3}`
+                  : ''}
+                )
+              </span>
             )}
           </button>
         </div>

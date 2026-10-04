@@ -19,6 +19,12 @@ export interface UserSubscriptionDetails {
   subscriptionCreditsBank?: number;
   rolloverEnabled?: boolean;
   lastRenewedAt?: string | null;
+  monthlyCredits?: number;
+  totalCycles?: number;
+  dispatchedCycles?: number;
+  nextDispatchDate?: string | null;
+  lastDispatchedAt?: string | null;
+  totalCommitmentCredits?: number;
 }
 
 export interface ApiUser {
