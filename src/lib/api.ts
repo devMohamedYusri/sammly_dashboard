@@ -79,6 +79,17 @@ export const clearToken = (): void => {
   }
 };
 
+export const getClientDeviceFingerprint = (): string => {
+  if (typeof window === 'undefined') return 'server';
+  let deviceId = localStorage.getItem('sammly-device-hw-id');
+  if (!deviceId) {
+    const hex = () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase();
+    deviceId = `${hex()}:${hex()}:${hex()}:${hex()}:${hex()}:${hex()}`;
+    localStorage.setItem('sammly-device-hw-id', deviceId);
+  }
+  return deviceId;
+};
+
 async function performFetch(baseUrl: string, path: string, options: RequestInit): Promise<Response> {
   const url = `${baseUrl}${path}`;
   const token = getToken();
@@ -86,6 +97,11 @@ async function performFetch(baseUrl: string, path: string, options: RequestInit)
   const headers = new Headers(options.headers || {});
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
+  }
+  const deviceId = getClientDeviceFingerprint();
+  if (deviceId) {
+    headers.set('x-mac-address', deviceId);
+    headers.set('x-device-id', deviceId);
   }
   if (!headers.has('Content-Type') && !(options.body instanceof FormData) && options.method && ['POST', 'PUT', 'PATCH'].includes(options.method)) {
     headers.set('Content-Type', 'application/json');

@@ -49,6 +49,8 @@ export default function SourcingTelemetryPage() {
   const [apiRouteFilter, setApiRouteFilter] = useState('');
   const [apiUserFilter, setApiUserFilter] = useState<{ id: string; email: string } | null>(null);
   const [inspectApiLog, setInspectApiLog] = useState<ApiTelemetryLogItem | null>(null);
+  const [copiedJson, setCopiedJson] = useState(false);
+  const [copiedMac, setCopiedMac] = useState(false);
 
   // Tab 2: Sourcing Analytics State
   const [metrics, setMetrics] = useState<SourcingQualityMetrics | null>(null);
@@ -1216,12 +1218,24 @@ export default function SourcingTelemetryPage() {
                                     ? 'Admin'
                                     : 'Customer'}
                                 </span>
+                                {log.macAddress && (
+                                  <span className="font-mono text-[9px] text-slate-400 block truncate" title={`Device MAC: ${log.macAddress} | IP: ${log.ipAddress || 'N/A'}`}>
+                                    {log.macAddress.startsWith('IP:') ? log.macAddress : `MAC: ${log.macAddress}`}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           ) : (
-                            <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                              Guest / Anonymous
-                            </span>
+                            <div>
+                              <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                                Guest / Anonymous
+                              </span>
+                              {log.macAddress && (
+                                <span className="font-mono text-[9px] text-slate-400 block truncate mt-0.5" title={`Device MAC: ${log.macAddress} | IP: ${log.ipAddress || 'N/A'}`}>
+                                  {log.macAddress.startsWith('IP:') ? log.macAddress : `MAC: ${log.macAddress}`}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
 
@@ -1234,9 +1248,14 @@ export default function SourcingTelemetryPage() {
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2">
                             {getMethodBadge(log.method)}
-                            <span className="font-mono text-xs text-slate-800 truncate max-w-[220px]" title={log.route}>
+                            <span className="font-mono text-xs text-slate-800 truncate max-w-[200px]" title={log.route}>
                               {log.route}
                             </span>
+                            {log.reqBody && Object.keys(log.reqBody).length > 0 && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200" title="Request body payload recorded">
+                                Body
+                              </span>
+                            )}
                           </div>
                         </td>
 
@@ -2009,6 +2028,98 @@ export default function SourcingTelemetryPage() {
                 <p className="text-xs text-slate-500">
                   This call was executed without an active authentication session (guest endpoint or public asset request).
                 </p>
+              )}
+            </div>
+
+            {/* Device Hardware & Network Identity */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div className="flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Originating Device & Network Hardware
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono">Layer-2 / Layer-7 Telemetry</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {/* MAC Address / Device Fingerprint */}
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-600">Hardware / MAC Address:</span>
+                    {inspectApiLog.macAddress && (
+                      <button
+                        onClick={() => {
+                          if (inspectApiLog.macAddress) {
+                            navigator.clipboard.writeText(inspectApiLog.macAddress);
+                            setCopiedMac(true);
+                            setTimeout(() => setCopiedMac(false), 2000);
+                          }
+                        }}
+                        className="text-[10px] font-semibold text-[#31A895] hover:underline"
+                      >
+                        {copiedMac ? 'Copied ✓' : 'Copy MAC'}
+                      </button>
+                    )}
+                  </div>
+                  <span className="font-mono text-xs font-bold text-slate-900 block select-all">
+                    {inspectApiLog.macAddress || 'Not transmitted via Layer-3 HTTP'}
+                  </span>
+                </div>
+
+                {/* Client IP Address */}
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1">
+                  <span className="text-[11px] font-bold text-slate-600 block">Public Client IP Address:</span>
+                  <span className="font-mono text-xs font-bold text-slate-900 block select-all">
+                    {inspectApiLog.ipAddress || 'Loopback / Gateway'}
+                  </span>
+                </div>
+              </div>
+
+              {inspectApiLog.userAgent && (
+                <div className="pt-2 border-t border-slate-100 text-xs">
+                  <span className="text-slate-400 block text-[11px]">Client User-Agent / Hardware Model:</span>
+                  <p className="font-mono text-[11px] text-slate-600 mt-0.5 break-all">
+                    {inspectApiLog.userAgent}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Request Body Payload */}
+            <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div className="flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Request Body Payload (Parameters)
+                  </span>
+                </div>
+                {inspectApiLog.reqBody && Object.keys(inspectApiLog.reqBody).length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (inspectApiLog.reqBody) {
+                        navigator.clipboard.writeText(JSON.stringify(inspectApiLog.reqBody, null, 2));
+                        setCopiedJson(true);
+                        setTimeout(() => setCopiedJson(false), 2000);
+                      }
+                    }}
+                    className="text-[11px] font-semibold text-[#31A895] hover:underline"
+                  >
+                    {copiedJson ? 'Copied JSON ✓' : 'Copy Payload ↗'}
+                  </button>
+                )}
+              </div>
+
+              {inspectApiLog.reqBody && Object.keys(inspectApiLog.reqBody).length > 0 ? (
+                <pre className="p-3.5 rounded-xl bg-slate-900 text-slate-100 text-xs font-mono overflow-x-auto max-h-56 leading-relaxed selection:bg-[#31A895]/50">
+                  {JSON.stringify(inspectApiLog.reqBody, null, 2)}
+                </pre>
+              ) : (
+                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-center text-xs text-slate-400">
+                  No request body payload recorded (GET request or empty parameters).
+                </div>
               )}
             </div>
 

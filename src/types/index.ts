@@ -187,6 +187,10 @@ export interface ApiTelemetryLogItem {
   statusCode: number;
   latencyMs: number;
   userId?: ApiTelemetryLogUser | null;
+  ipAddress?: string | null;
+  macAddress?: string | null;
+  userAgent?: string | null;
+  reqBody?: Record<string, any> | any | null;
   timestamp: string;
 }
 
