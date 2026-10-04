@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import DataTable from '@/components/common/DataTable';
 import Badge from '@/components/common/Badge';
 import StatCard from '@/components/common/StatCard';
@@ -17,6 +17,33 @@ function CoinsIcon({ className = 'w-4 h-4' }: { className?: string }) {
       <path d="M3 12a9 3 0 0 0 18 0" />
     </svg>
   );
+}
+
+function getPaginationRange(currentPage: number, totalPages: number): (number | string)[] {
+  const delta = 1;
+  const range: (number | string)[] = [];
+  const rangeWithDots: (number | string)[] = [];
+  let l: number | undefined;
+
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
+      range.push(i);
+    }
+  }
+
+  for (const i of range) {
+    if (l !== undefined) {
+      if ((i as number) - l === 2) {
+        rangeWithDots.push(l + 1);
+      } else if ((i as number) - l !== 1) {
+        rangeWithDots.push('...');
+      }
+    }
+    rangeWithDots.push(i);
+    l = i as number;
+  }
+
+  return rangeWithDots;
 }
 
 export default function UserManagementPage() {
@@ -37,7 +64,7 @@ export default function UserManagementPage() {
   const [showBalanceModal, setShowBalanceModal] = useState(false);
   const [balanceTargetUser, setBalanceTargetUser] = useState<ApiUser | null>(null);
 
-  const fetchUsers = useCallback(async (isLoadMore = false) => {
+  const fetchUsers = useCallback(async (targetPage = page) => {
     setLoading(true);
     try {
       let apiStatus: 'active' | 'deactivated' | 'pending' | undefined = undefined;
@@ -45,7 +72,6 @@ export default function UserManagementPage() {
       else if (filterStatus === 'Inactive') apiStatus = 'deactivated';
       else if (filterStatus === 'Pending') apiStatus = 'pending';
 
-      const targetPage = isLoadMore ? page : 1;
       const data = await getUsers({
         page: targetPage,
         limit: 20,
@@ -53,11 +79,7 @@ export default function UserManagementPage() {
         search: searchQuery.trim() || undefined,
       });
 
-      if (isLoadMore) {
-        setUsers((prev) => [...prev, ...data.users]);
-      } else {
-        setUsers(data.users);
-      }
+      setUsers(data.users || []);
 
       if (data.stats) {
         setStats({
@@ -66,7 +88,7 @@ export default function UserManagementPage() {
           deactivatedUsers: data.stats.deactivatedUsers || 0,
         });
       }
-      setHasMore(data.pagination.hasMore);
+      setHasMore(Boolean(data.pagination?.hasMore));
       setError(null);
       setLastRefreshed(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     } catch (err: unknown) {
@@ -80,13 +102,31 @@ export default function UserManagementPage() {
   useEffect(() => {
     const delayDebounceFn = setTimeout(
       () => {
-        fetchUsers(false);
+        fetchUsers(page);
       },
       searchQuery ? 300 : 0
     );
 
     return () => clearTimeout(delayDebounceFn);
-  }, [filterStatus, searchQuery]);
+  }, [fetchUsers, page, searchQuery]);
+
+  // Derived Tab Pagination Totals (Limit 20 per page)
+  const pendingUsersCount = Math.max(0, stats.totalUsers - stats.activeUsers - stats.deactivatedUsers);
+
+  const currentTabTotal = useMemo(() => {
+    if (searchQuery.trim()) {
+      return hasMore ? Math.max(users.length, page * 20 + 1) : Math.max(users.length, (page - 1) * 20 + users.length);
+    }
+    if (filterStatus === 'Active') return stats.activeUsers;
+    if (filterStatus === 'Inactive') return stats.deactivatedUsers;
+    if (filterStatus === 'Pending') return pendingUsersCount;
+    return stats.totalUsers;
+  }, [filterStatus, stats, pendingUsersCount, searchQuery, hasMore, users.length, page]);
+
+  const totalPages = Math.max(1, Math.ceil(currentTabTotal / 20));
+  const startItem = currentTabTotal === 0 ? 0 : (page - 1) * 20 + 1;
+  const endItem = Math.min(currentTabTotal, (page - 1) * 20 + users.length);
+  const paginationRange = useMemo(() => getPaginationRange(page, totalPages), [page, totalPages]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -100,7 +140,7 @@ export default function UserManagementPage() {
       } else {
         await activateUser(user._id);
       }
-      fetchUsers(false);
+      fetchUsers(page);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to update user status';
       alert(msg);
@@ -302,7 +342,7 @@ export default function UserManagementPage() {
         <div className="flex items-center gap-2 self-start sm:self-auto">
           {/* Refresh */}
           <button
-            onClick={() => fetchUsers(false)}
+            onClick={() => fetchUsers(page)}
             disabled={loading}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs disabled:opacity-50"
             title="Refresh user directory"
@@ -396,7 +436,7 @@ export default function UserManagementPage() {
               [
                 { id: 'all', label: 'All Users', count: stats.totalUsers },
                 { id: 'Active', label: 'Active', count: stats.activeUsers },
-                { id: 'Pending', label: 'Pending', count: null },
+                { id: 'Pending', label: 'Pending', count: pendingUsersCount },
                 { id: 'Inactive', label: 'Inactive', count: stats.deactivatedUsers },
               ] as const
             ).map((tab) => {
@@ -460,19 +500,61 @@ export default function UserManagementPage() {
           </div>
         )}
 
-        {/* Load More Pagination */}
-        {hasMore && (
-          <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex justify-center">
-            <button
-              onClick={() => {
-                setPage((prev) => prev + 1);
-                fetchUsers(true);
-              }}
-              disabled={loading}
-              className="px-6 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold rounded-xl transition-colors text-xs disabled:opacity-50 shadow-2xs"
-            >
-              {loading ? 'Loading...' : 'Load More Users'}
-            </button>
+        {/* 20 Per Page Pagination Bar */}
+        {currentTabTotal > 0 && (
+          <div className="px-5 py-3.5 bg-slate-50/70 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="text-slate-500 text-[11px] sm:text-xs">
+              Showing <strong className="text-slate-900 font-bold">{startItem}</strong> to{' '}
+              <strong className="text-slate-900 font-bold">{endItem}</strong> of{' '}
+              <strong className="text-slate-900 font-bold">{currentTabTotal}</strong> users
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1 || loading}
+                className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-xs transition-colors flex items-center gap-1 shadow-3xs"
+              >
+                <span>‹</span>
+                <span>Prev</span>
+              </button>
+
+              <div className="flex items-center gap-1">
+                {paginationRange.map((pNum: number | string, idx: number) => {
+                  if (pNum === '...') {
+                    return (
+                      <span key={`dots-${idx}`} className="px-1 text-slate-400 font-bold">
+                        ...
+                      </span>
+                    );
+                  }
+                  const isCurrent = pNum === page;
+                  return (
+                    <button
+                      key={`page-${pNum}`}
+                      onClick={() => setPage(Number(pNum))}
+                      disabled={loading || isCurrent}
+                      className={`min-w-[28px] h-7 px-2 rounded-lg font-bold text-xs transition-all flex items-center justify-center ${
+                        isCurrent
+                          ? 'bg-[#31A895] text-white shadow-2xs'
+                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                      }`}
+                    >
+                      {pNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages || loading}
+                className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-xs transition-colors flex items-center gap-1 shadow-3xs"
+              >
+                <span>Next</span>
+                <span>›</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -484,7 +566,7 @@ export default function UserManagementPage() {
           onClose={() => setShowBalanceModal(false)}
           targetUser={balanceTargetUser}
           allUsers={users}
-          onSuccess={() => fetchUsers(false)}
+          onSuccess={() => fetchUsers(page)}
         />
       )}
     </div>
